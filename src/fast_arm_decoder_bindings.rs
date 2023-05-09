@@ -1,11 +1,9 @@
-// https://docs.rust-embedded.org/book/interoperability/c-with-rust.html
-
 use cty::{c_int, int16_t, int32_t, uint8_t};
 
 extern "C" {
  
     pub fn fad_decode(
-        _in: cty::uint32_t,
+        _in: *mut cty::uint32_t,
         n: cty::c_uint,
         _out: *mut Inst
     ) -> c_int;
@@ -742,7 +740,7 @@ struct Extend {
 struct LdstOrder {
     load: u16,
     store: u16,
-    rs: Reg,
+    rs: uint8_t,
 }
 
 #[repr(C)]
