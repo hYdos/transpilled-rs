@@ -1,6 +1,6 @@
 // https://docs.rust-embedded.org/book/interoperability/c-with-rust.html
 
-use cty::{c_int, int16_t, int32_t};
+use cty::{c_int, int16_t, int32_t, uint8_t};
 
 extern "C" {
  
@@ -658,18 +658,12 @@ enum Op {
 }
 
 #[repr(C)]
-enum Reg {
-    ZERO_REG = 31,
-    STACK_POINTER = 100 // arbitrary
-}
-
-#[repr(C)]
 pub struct Inst {
     op: Op,
     flags: u8,
-    rd: Reg,
-    rn: Reg,
-    union_rt_rm_rt2_rs: Reg,
+    rd: uint8_t,
+    rn: uint8_t,
+    union_rt_rm_rt2_rs: uint8_t,
     union_imm_fimm_offset_ra_error: u64,
     movk: Movk,
     bfm: Bfm,
