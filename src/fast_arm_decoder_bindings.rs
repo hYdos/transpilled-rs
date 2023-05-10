@@ -1,7 +1,6 @@
 use cty::{c_int, int16_t, int32_t, uint8_t};
 
 extern "C" {
- 
     pub fn fad_decode(
         _in: *mut cty::uint32_t,
         n: cty::c_uint,
@@ -657,7 +656,7 @@ enum Op {
 
 #[repr(C)]
 pub struct Inst {
-    op: Op,
+    pub(crate) op: Op,
     flags: u8,
     rd: uint8_t,
     rn: uint8_t,

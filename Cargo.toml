@@ -7,6 +7,10 @@ edition = "2021"
 
 [dependencies]
 cty = "0.2.2"
+llvm-sys = "160.0.2"
+libc = "0.2.144"
 
 [build-dependencies]
 cc = "1.0.79"
+cmake = "0.1.50"
+bindgen = "0.65.1"
