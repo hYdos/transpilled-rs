@@ -1,18 +1,20 @@
+#![feature(extern_types)]
 extern crate core;
 
 use std::ffi::{CStr, CString};
 use std::mem::MaybeUninit;
+use std::ptr::{null, null_mut};
 
-use cty::uint32_t;
+use cty::{c_ulonglong, uint32_t};
 use llvm_sys::core::{LLVMDumpValue, LLVMModuleCreateWithName};
 
 use crate::fast_arm_decoder_bindings::{fad_decode, Inst};
+use crate::rellume_bindings::{ll_config_new, ll_config_set_architecture, ll_config_set_call_ret_clobber_flags, ll_func_decode_cfg, ll_func_lift, ll_func_new, RellumeMemAccessCb};
 
 mod fast_arm_decoder_bindings;
 mod rellume_bindings;
 
 fn main() {
-    #![feature(extern_types)]
 
     // Test FastArmDecoder
     unsafe {
@@ -37,7 +39,7 @@ fn main() {
         //     int j = 1 * 2;
         //     return j;
         // }
-        let code = [ // main: @main
+        let code: [i64; 11] = [ // main: @main
             0xFF4300D1,      //   sub sp, sp, #16
             0xFF0F00B9,      //   str wzr, [sp, #12]
             0xFF0B00B9,      //   str wzr, [sp, #8]
@@ -53,11 +55,12 @@ fn main() {
 
         // Create function for lifting
         let cfg = ll_config_new();
-        ll_config_set_architecture(cfg, "aarch64");
+        let arch = CString::new("aarch64").unwrap();
+        ll_config_set_architecture(cfg, arch.as_ptr());
         ll_config_set_call_ret_clobber_flags(cfg, true);
         let func = ll_func_new(module, cfg);
         // Lift the whole function by following all direct jumps
-        ll_func_decode_cfg(func, code.as_ptr(), NULL, NULL);
+        ll_func_decode_cfg(func, c_ulonglong::from(code.as_ptr() as u64), None, null_mut());
         let llvm_fn = ll_func_lift(func);
         LLVMDumpValue(llvm_fn);
     }

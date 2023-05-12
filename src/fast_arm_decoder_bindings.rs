@@ -656,7 +656,7 @@ enum Op {
 
 #[repr(C)]
 pub struct Inst {
-    pub(crate) op: Op,
+    op: Op,
     flags: u8,
     rd: uint8_t,
     rn: uint8_t,

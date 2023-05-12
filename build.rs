@@ -2,7 +2,7 @@ use std::env;
 use std::path::PathBuf;
 
 fn main() {
-    let llvm_install = "C:/Program Files/LLVM".to_string();
+    let llvm_install = "C:/LLVM-16".to_string();
     println!("cargo:include={}", "clibs/farmdec/src");
     println!("cargo:include={}", llvm_install.clone() + "/include");
     println!("cargo:rerun-if-changed=clibs/rellume/src/rellume.h");
