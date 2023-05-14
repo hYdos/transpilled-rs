@@ -30,8 +30,6 @@
 #include "function-info.h"
 #include "instr.h"
 #include "a64/lifter.h"
-#include "x86-64/lifter.h"
-#include "rv64/lifter.h"
 #include "regfile.h"
 #include <llvm/ADT/DepthFirstIterator.h>
 #include <llvm/ADT/SmallVector.h>

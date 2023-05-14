@@ -22,13 +22,13 @@
  * \file
  **/
 
-#include "a64/lifter.h"
-#include "a64/lifter-private.h"
+#include "lifter.h"
+#include "lifter-private.h"
 
-#include "arch.h"
-#include "facet.h"
-#include "instr.h"
-#include "regfile.h"
+#include "../arch.h"
+#include "../facet.h"
+#include "../instr.h"
+#include "../regfile.h"
 
 #include <cstdint>
 
@@ -46,6 +46,30 @@ bool LiftInstruction(const Instr& inst, FunctionInfo& fi, const LLConfig& cfg,
     return Lifter(fi, cfg, ab).Lift(inst);
 }
 
+struct FdOp {
+    uint8_t type;
+    uint8_t size;
+    uint8_t reg;
+    uint8_t misc;
+};
+
+struct FdInstr {
+    uint16_t type;
+    uint8_t flags;
+    uint8_t segment;
+    uint8_t addrsz;
+    uint8_t operandsz;
+    uint8_t size;
+    uint8_t evex;
+
+    FdOp operands[4];
+
+    int64_t disp;
+    int64_t imm;
+
+    uint64_t address;
+};
+
 static uint64_t ones(int n);
 
 bool Lifter::Lift(const Instr& inst) {
@@ -62,11 +86,11 @@ bool Lifter::Lift(const Instr& inst) {
     }
 
     // Check overridden implementations first.
-    const auto& override = cfg.instr_overrides.find(inst.type());
-    if (override != cfg.instr_overrides.end()) {
-        CallExternalFunction(override->second);
-        return true;
-    }
+//    const auto& override = cfg.instr_overrides.find(inst.type());
+//    if (override != cfg.instr_overrides.end()) {
+//        CallExternalFunction(override->second);
+//        return true;
+//    }
 
     const farmdec::Inst* a64p = inst;
     const farmdec::Inst& a64 = *a64p;

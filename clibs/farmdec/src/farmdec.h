@@ -1,8 +1,12 @@
+#pragma once
+
 // For usage in C or C++, see main.c and example.cpp.
 // <stdint.h> must be have been included.
 
 // Do not pollute typedef space when accessing from the outside.
 // Just replace the types with the stdint.h ones.
+#include <stdint.h>
+
 #ifdef FARMDEC_INTERNAL
 typedef unsigned int uint;
 typedef uint8_t   u8;

@@ -4,14 +4,35 @@ use libc::{c_char, c_int, c_uint, c_ulonglong, c_void};
 use llvm_sys::prelude::{LLVMModuleRef, LLVMValueRef};
 
 #[repr(C)]
-pub struct LLConfig;
+pub struct LLConfig;/* {
+    enableOverflowIntrinsics: bool,
+    enableFastMath: bool,
+    call_ret_clobber_flags: bool,
+    use_native_segment_base: bool,
+    full_facets: bool,
+    verify_ir: bool,
+    position_independent_code: bool,
+    arch: Arch,
+    callconv: CallConv,
+    sptr_addrspace: unsigned,
+    global_base_addr: u32,
+    global_base_value: llvm::Value*,
+    pc_base_addr: u32,
+    pc_base_value: llvm::Value*,
+    instr_overrides: std::unordered_map<u32, llvm::Function*>,
+    tail_function: llvm::Function*,
+    call_function: llvm::Function*,
+    syscall_implementation: llvm::Function*,
+    cpuinfo_function: llvm::Function*,
+    instr_marker: llvm::Function*,
+};*/
 
 #[repr(C)]
-pub struct LLFunc;
+pub struct LLFunc {}
 
-pub type RellumeMemAccessCb = Option<unsafe extern "C" fn (usize) -> usize>;
+pub type RellumeMemAccessCb = Option<unsafe extern "C" fn(usize) -> usize>;
 
-#[link(name = "llvm")]
+#[link(name = "rellume")]
 extern "C" {
     pub fn ll_config_new() -> *mut LLConfig;
     pub fn ll_config_free(config: *mut LLConfig);

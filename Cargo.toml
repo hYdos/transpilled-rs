@@ -9,8 +9,8 @@ edition = "2021"
 cty = "0.2.2"
 llvm-sys = "160.0.2"
 libc = "0.2.144"
+nx-utils = { git = "https://github.com/tr-nx/nx-utils.git" }
 
 [build-dependencies]
 cc = "1.0.79"
-cmake = "0.1.50"
 bindgen = "0.65.1"

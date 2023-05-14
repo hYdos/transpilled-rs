@@ -25,12 +25,13 @@
 #ifndef RELLUME_A64_LIFTER_H
 #define RELLUME_A64_LIFTER_H
 
-#include "basicblock.h"
-#include "config.h"
-#include "function-info.h"
-#include "instr.h"
-#include "regfile.h"
-#include "lifter-base.h"
+#include <farmdec.h>
+#include "../basicblock.h"
+#include "../config.h"
+#include "../function-info.h"
+#include "../instr.h"
+#include "../regfile.h"
+#include "../lifter-base.h"
 
 namespace rellume::aarch64 {
 

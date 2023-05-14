@@ -21,13 +21,13 @@
  * \file
  **/
 
-#include "a64/lifter.h"
-#include "a64/lifter-private.h"
+#include "lifter.h"
+#include "lifter-private.h"
 
-#include "arch.h"
-#include "facet.h"
-#include "instr.h"
-#include "regfile.h"
+#include "../arch.h"
+#include "../facet.h"
+#include "../instr.h"
+#include "../regfile.h"
 
 #include <cstdint>
 

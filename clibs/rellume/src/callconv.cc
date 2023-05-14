@@ -154,7 +154,7 @@ static span<const CPUStructEntry> CPUStructEntries(CallConv cconv) {
     static const CPUStructEntry cpu_struct_entries_aarch64[] = {
 #define RELLUME_MAPPED_REG(nameu,off,reg,facet) \
             std::make_tuple(SptrIdx::aarch64::nameu, off, reg, facet),
-#include <rellume/cpustruct-aarch64-private.inc>
+#include "cpustruct-aarch64-private.inc"
 #undef RELLUME_MAPPED_REG
     };
 #endif // RELLUME_WITH_AARCH64
