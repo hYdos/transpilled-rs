@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/Transpilled-Rs.iml" filepath="$PROJECT_DIR$/Transpilled-Rs.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/tr-nx.iml" filepath="$PROJECT_DIR$/.idea/tr-nx.iml" />
     </modules>
   </component>
 </project>
