@@ -19,7 +19,7 @@
 pub enum Reg {
     ZERO_REG = 31,
     /// arbitrary
-    STACK_POINTER = 100
+    STACK_POINTER = 100,
 }
 
 /// Opcodes ordered and grouped according to the Top-level Encodings
@@ -39,22 +39,28 @@ pub enum Reg {
 /// modes of loads and stores are encoded similarly. See the Inst
 /// structure for more detail.
 pub enum Op {
-    A64_UNKNOWN, /// unknown instruction (or Op field not set, by accident), Inst.imm contains raw binary instruction
-    A64_ERROR,   /// invalid instruction, Inst.error contains error string
-    A64_UDF,     /// throws undefined exception
+    A64_UNKNOWN,
+    /// unknown instruction (or Op field not set, by accident), Inst.imm contains raw binary instruction
+    A64_ERROR,
+    /// invalid instruction, Inst.error contains error string
+    A64_UDF,
+    /// throws undefined exception
 
     /*** Data Processing -- Immediate ***/
 
     /// PC-rel. addressing
-    A64_ADR,     /// ADR Xd, label  -- Xd ← PC + label
-    A64_ADRP,    /// ADRP Xd, label -- Xd ← PC + (label * 4K)
+    A64_ADR,
+    /// ADR Xd, label  -- Xd ← PC + label
+    A64_ADRP,
+    /// ADRP Xd, label -- Xd ← PC + (label * 4K)
 
     /// Add/subtract (immediate, with tags) -- OMITTED
 
     /// Add/subtract (immediate)
     A64_ADD_IMM,
     A64_CMN_IMM,
-    A64_MOV_SP, /// MOV from/to SP -- ADD (imm) alias (predicate: shift == 0 && imm12 == 0 && (Rd == SP || Rn == SP))
+    A64_MOV_SP,
+    /// MOV from/to SP -- ADD (imm) alias (predicate: shift == 0 && imm12 == 0 && (Rd == SP || Rn == SP))
     A64_SUB_IMM,
     A64_CMP_IMM,
 
@@ -62,10 +68,12 @@ pub enum Op {
     A64_AND_IMM,
     A64_ORR_IMM,
     A64_EOR_IMM,
-    A64_TST_IMM, /// TST Rn -- ANDS alias (Rd := RZR, predicate: Rd == ZR && set_flags)
+    A64_TST_IMM,
+    /// TST Rn -- ANDS alias (Rd := RZR, predicate: Rd == ZR && set_flags)
 
     /// Move wide (immediate)
-    A64_MOVK, /// keep other bits
+    A64_MOVK,
+    /// keep other bits
 
     /// Synthetic instruction comprising MOV (bitmask immediate), MOV (inverted wide immediate)
     /// and MOV (wide immediate), MOVN and MOVZ; essentially all MOVs where the result of the
@@ -74,15 +82,18 @@ pub enum Op {
     A64_MOV_IMM,
 
     /// Bitfield
-    A64_SBFM,    /// always decoded to an alias
+    A64_SBFM,
+    /// always decoded to an alias
     A64_ASR_IMM,
     A64_SBFIZ,
     A64_SBFX,
-    A64_BFM,     /// always decoded to an alias
+    A64_BFM,
+    /// always decoded to an alias
     A64_BFC,
     A64_BFI,
     A64_BFXIL,
-    A64_UBFM,    /// always decoded to an alias
+    A64_UBFM,
+    /// always decoded to an alias
     A64_LSL_IMM,
     A64_LSR_IMM,
     A64_UBFIZ,
@@ -94,7 +105,8 @@ pub enum Op {
 
     /// Extract
     A64_EXTR,
-    A64_ROR_IMM, /// ROR Rd, Rs, #shift -- EXTR alias (Rm := Rs, Rn := Rs, predicate: Rm == Rn)
+    A64_ROR_IMM,
+    /// ROR Rd, Rs, #shift -- EXTR alias (Rm := Rs, Rn := Rs, predicate: Rm == Rn)
 
     /*** Branches, Exception Generating and System Instructions ***/
 
@@ -104,7 +116,8 @@ pub enum Op {
     ///
     /// With the exception of SVC, they are not interesting for lifting
     /// userspace programs, but were included since they are trivial.
-    A64_SVC, /// system call
+    A64_SVC,
+    /// system call
     A64_HVC,
     A64_SMC,
     A64_BRK,
@@ -127,18 +140,25 @@ pub enum Op {
     A64_PSSBB,
 
     /// PSTATE
-    A64_MSR_IMM, /// MSR <pstatefield>, #imm -- Inst.msr_imm
+    A64_MSR_IMM,
+    /// MSR <pstatefield>, #imm -- Inst.msr_imm
     A64_CFINV,
-    A64_XAFlag,  /// irrelevant
-    A64_AXFlag,  /// ------
+    A64_XAFlag,
+    /// irrelevant
+    A64_AXFlag,
+    /// ------
 
     /// System instructions -- Inst.ldst.rt := Xt
-    A64_SYS,  /// SYS #op1, Cn, Cm, #op2(, Xt)
-    A64_SYSL, /// SYSL Xt, #op1, Cn, Cm, #op2
+    A64_SYS,
+    /// SYS #op1, Cn, Cm, #op2(, Xt)
+    A64_SYSL,
+    /// SYSL Xt, #op1, Cn, Cm, #op2
 
     /// System register move -- Inst.ldst.rt := Xt; Inst.imm := sysreg
-    A64_MSR_REG, /// MSR <sysreg>, Xt
-    A64_MRS,     /// MRS Xt, <sysreg>
+    A64_MSR_REG,
+    /// MSR <sysreg>, Xt
+    A64_MRS,
+    /// MRS Xt, <sysreg>
 
     /// Unconditional branch (register)
     A64_BR,
@@ -186,33 +206,42 @@ pub enum Op {
 
     /// Logical (shifted register)
     A64_AND_SHIFTED,
-    A64_TST_SHIFTED, /// ANDS alias (Rd := ZR, predicate: Rd == ZR)
+    A64_TST_SHIFTED,
+    /// ANDS alias (Rd := ZR, predicate: Rd == ZR)
     A64_BIC,
     A64_ORR_SHIFTED,
-    A64_MOV_REG,     /// ORR alias (predicate: shift == 0 && imm6 == 0 && Rn == ZR)
+    A64_MOV_REG,
+    /// ORR alias (predicate: shift == 0 && imm6 == 0 && Rn == ZR)
     A64_ORN,
-    A64_MVN,         /// ORN alias (Rn := ZR, predicate: Rn == ZR)
+    A64_MVN,
+    /// ORN alias (Rn := ZR, predicate: Rn == ZR)
     A64_EOR_SHIFTED,
     A64_EON,
 
     /// Add/subtract (shifted register)
     A64_ADD_SHIFTED,
-    A64_CMN_SHIFTED, /// ADDS alias (Rd := ZR, predicate: Rd == ZR && set_flags)
+    A64_CMN_SHIFTED,
+    /// ADDS alias (Rd := ZR, predicate: Rd == ZR && set_flags)
     A64_SUB_SHIFTED,
-    A64_NEG,         /// SUB alias (Rn := ZR, predicate: Rn == ZR)
-    A64_CMP_SHIFTED, /// SUBS alias (Rd := ZR, predicate: Rd == ZR && set_flags)
+    A64_NEG,
+    /// SUB alias (Rn := ZR, predicate: Rn == ZR)
+    A64_CMP_SHIFTED,
+    /// SUBS alias (Rd := ZR, predicate: Rd == ZR && set_flags)
 
     /// Add/subtract (extended register)
     /// Register 31 is interpreted as the stack pointer (SP/WSP).
     A64_ADD_EXT,
-    A64_CMN_EXT, /// ADDS alias (Rd := ZR, predicate: Rd == ZR && set_flags)
+    A64_CMN_EXT,
+    /// ADDS alias (Rd := ZR, predicate: Rd == ZR && set_flags)
     A64_SUB_EXT,
-    A64_CMP_EXT, /// SUBS alias (Rd := ZR, predicate: Rd == ZR && set_flags)
+    A64_CMP_EXT,
+    /// SUBS alias (Rd := ZR, predicate: Rd == ZR && set_flags)
 
     /// Add/subtract (with carry)
     A64_ADC,
     A64_SBC,
-    A64_NGC, /// SBC alias (Rd := ZR, predicate: Rd == RR)
+    A64_NGC,
+    /// SBC alias (Rd := ZR, predicate: Rd == RR)
 
     /// Rotate right into flags
     A64_RMIF,
@@ -232,28 +261,39 @@ pub enum Op {
     /// Conditional select
     A64_CSEL,
     A64_CSINC,
-    A64_CINC,  /// CSINC alias (cond := invert(cond), predicate: Rm == Rn != ZR)
-    A64_CSET,  /// CSINC alias (cond := invert(cond), predicate: Rm == Rn == ZR)
+    A64_CINC,
+    /// CSINC alias (cond := invert(cond), predicate: Rm == Rn != ZR)
+    A64_CSET,
+    /// CSINC alias (cond := invert(cond), predicate: Rm == Rn == ZR)
     A64_CSINV,
-    A64_CINV,  /// CSINV alias (cond := invert(cond), predicate: Rm == Rn != ZR)
-    A64_CSETM, /// CSINV alias (cond := invert(cond), predicate: Rm == Rn == ZR)
+    A64_CINV,
+    /// CSINV alias (cond := invert(cond), predicate: Rm == Rn != ZR)
+    A64_CSETM,
+    /// CSINV alias (cond := invert(cond), predicate: Rm == Rn == ZR)
     A64_CSNEG,
-    A64_CNEG,  /// CSNEG alias (cond := invert(cond), predicate: Rm == Rn)
+    A64_CNEG,
+    /// CSNEG alias (cond := invert(cond), predicate: Rm == Rn)
 
     /// Data-processing (3 source)
     A64_MADD,
-    A64_MUL,    /// MADD alias (Ra omitted, predicate: Ra == ZR)
+    A64_MUL,
+    /// MADD alias (Ra omitted, predicate: Ra == ZR)
     A64_MSUB,
-    A64_MNEG,   /// MSUB alias (^---- see above)
+    A64_MNEG,
+    /// MSUB alias (^---- see above)
     A64_SMADDL,
-    A64_SMULL,  /// SMADDL alias  (^---- see above)
+    A64_SMULL,
+    /// SMADDL alias  (^---- see above)
     A64_SMSUBL,
-    A64_SMNEGL, /// SMSUBL alias (^---- see above)
+    A64_SMNEGL,
+    /// SMSUBL alias (^---- see above)
     A64_SMULH,
     A64_UMADDL,
-    A64_UMULL,  /// UMADDL alias (^---- see above)
+    A64_UMULL,
+    /// UMADDL alias (^---- see above)
     A64_UMSUBL,
-    A64_UMNEGL, /// UMSUBL alias (^---- see above)
+    A64_UMNEGL,
+    /// UMSUBL alias (^---- see above)
     A64_UMULH,
 
     /*** Loads and Stores ***/
@@ -291,11 +331,16 @@ pub enum Op {
     A64_LD4R,
 
     /// Load/store exclusive
-    A64_LDXR,  /// includes Load-acquire variants
-    A64_STXR,  /// includes Store-acquire variants (STLXR)
-    A64_LDXP,  /// ------
-    A64_STXP,  /// ------
-    A64_LDAPR, /// Load-AcquirePC Register (actually in Atomic group)
+    A64_LDXR,
+    /// includes Load-acquire variants
+    A64_STXR,
+    /// includes Store-acquire variants (STLXR)
+    A64_LDXP,
+    /// ------
+    A64_STXP,
+    /// ------
+    A64_LDAPR,
+    /// Load-AcquirePC Register (actually in Atomic group)
 
     /// Load/store no-allocate pair (offset)
     A64_LDNP,
@@ -307,8 +352,10 @@ pub enum Op {
     /// Load/store register pair (post-indexed) -- AM_POST
     /// Load/store register pair (offset)       -- AM_OFF_IMM
     /// Load/store register pair (pre-indexed)  -- AM_PRE
-    A64_LDP, /// LDP, LDXP
-    A64_STP, /// STP, STXP
+    A64_LDP,
+    /// LDP, LDXP
+    A64_STP,
+    /// STP, STXP
     A64_LDP_FP,
     A64_STP_FP,
 
@@ -322,8 +369,10 @@ pub enum Op {
     /// Load/store register (register offset)        -- AM_OFF_REG, AM_OFF_EXT
     /// Load/store register (unsigned immediate)     -- AM_OFF_IMM
     /// Load/store register (unscaled immediate)     -- AM_OFF_IMM
-    A64_LDR, /// LDR, LDAR, LDLAR, LDUR
-    A64_STR, /// STR, STLR, STLLR, STUR
+    A64_LDR,
+    /// LDR, LDAR, LDLAR, LDUR
+    A64_STR,
+    /// STR, STLR, STLLR, STUR
     A64_LDR_FP,
     A64_STR_FP,
 
@@ -357,8 +406,10 @@ pub enum Op {
     A64_LDUMAX,
     A64_LDUMIN,
     A64_SWP,
-    A64_CAS,   /// Compare and Swap (actually from Exclusive group)
-    A64_CASP,  /// Compare and Swap Pair of (double)words (actually from Exclusive group)
+    A64_CAS,
+    /// Compare and Swap (actually from Exclusive group)
+    A64_CASP,
+    /// Compare and Swap Pair of (double)words (actually from Exclusive group)
 
     /*** Data Processing -- Scalar Floating-Point and Advanced SIMD ***/
 
@@ -378,27 +429,40 @@ pub enum Op {
     /// Inst.fcvt.mode  := rounding mode
     /// Inst.fcvt.fbits := #fbits for fixed-point
     /// Inst.fcvt.typ   := signed OR unsigned OR fixed-point
-    A64_FCVT_GPR, /// Sca(fp)        → GPR(int|fixed)
-    A64_FCVT_VEC, /// Vec(fp)        → Vec(int|fixed)
-    A64_CVTF,     /// GPR(int|fixed) → Sca(fp)
-    A64_CVTF_VEC, /// Vec(int|fixed) → Vec(fp)
-    A64_FJCVTZS,  /// Sca(f32)       → GPR(i32); special Javascript instruction
+    A64_FCVT_GPR,
+    /// Sca(fp)        → GPR(int|fixed)
+    A64_FCVT_VEC,
+    /// Vec(fp)        → Vec(int|fixed)
+    A64_CVTF,
+    /// GPR(int|fixed) → Sca(fp)
+    A64_CVTF_VEC,
+    /// Vec(int|fixed) → Vec(fp)
+    A64_FJCVTZS,
+    /// Sca(f32)       → GPR(i32); special Javascript instruction
 
     /// Rounding and Precision Conversion
     ///
     /// Inst.flags.prec := Sca(fp) precision
     /// Inst.frint.mode := rounding mode
     /// Inst.frint.bits := 0 if any size, 32, 64
-    A64_FRINT,   /// Round to integral (any size, 32-bit, or 64-bit)
+    A64_FRINT,
+    /// Round to integral (any size, 32-bit, or 64-bit)
     A64_FRINT_VEC,
-    A64_FRINTX,  /// ---- Exact (throws Inexact exception on failure)
+    A64_FRINTX,
+    /// ---- Exact (throws Inexact exception on failure)
     A64_FRINTX_VEC,
-    A64_FCVT_H,  /// Convert from any precision to Half
-    A64_FCVT_S,  /// -------------------------- to Single
-    A64_FCVT_D,  /// -------------------------- to Double
-    A64_FCVTL,   /// Extend to higher precision (vector)
-    A64_FCVTN,   /// Narrow to lower precision  (vector)
-    A64_FCVTXN,  /// Narrow to lower precision, round to odd (vector)
+    A64_FCVT_H,
+    /// Convert from any precision to Half
+    A64_FCVT_S,
+    /// -------------------------- to Single
+    A64_FCVT_D,
+    /// -------------------------- to Double
+    A64_FCVTL,
+    /// Extend to higher precision (vector)
+    A64_FCVTN,
+    /// Narrow to lower precision  (vector)
+    A64_FCVTXN,
+    /// Narrow to lower precision, round to odd (vector)
 
     /// Floating-Point Computation (scalar)
     A64_FABS,
@@ -409,10 +473,14 @@ pub enum Op {
     A64_FDIV,
     A64_FADD,
     A64_FSUB,
-    A64_FMAX,   /// max(n, NaN) → exception or FPSR flag set
-    A64_FMAXNM, /// max(n, NaN) → n
-    A64_FMIN,   /// min(n, NaN) → exception or FPSR flag set
-    A64_FMINNM, /// min(n, NaN) → n
+    A64_FMAX,
+    /// max(n, NaN) → exception or FPSR flag set
+    A64_FMAXNM,
+    /// max(n, NaN) → n
+    A64_FMIN,
+    /// min(n, NaN) → exception or FPSR flag set
+    A64_FMINNM,
+    /// min(n, NaN) → n
 
     /// Floating-Point Stepwise (scalar)
     A64_FRECPE,
@@ -429,20 +497,29 @@ pub enum Op {
     A64_FNMSUB,
 
     /// Floating-Point Compare, Select, Move (scalar)
-    A64_FCMP_REG,   /// compare Rn, Rm
-    A64_FCMP_ZERO,  /// compare Rn and 0.0
+    A64_FCMP_REG,
+    /// compare Rn, Rm
+    A64_FCMP_ZERO,
+    /// compare Rn and 0.0
     A64_FCMPE_REG,
     A64_FCMPE_ZERO,
     A64_FCCMP,
     A64_FCCMPE,
     A64_FCSEL,
-    A64_FMOV_VEC2GPR, /// GPR ← SIMD&FP reg, without conversion
-    A64_FMOV_GPR2VEC, /// GPR → SIMD&FP reg, ----
-    A64_FMOV_TOP2GPR, /// GPR ← SIMD&FP top half (of full 128 bits), ----
-    A64_FMOV_GPR2TOP, /// GPR → SIMD&FP top half (of full 128 bits), ----
-    A64_FMOV_REG, /// SIMD&FP ←→ SIMD&FP
-    A64_FMOV_IMM, /// SIMD&FP ← 8-bit float immediate (see VFPExpandImm)
-    A64_FMOV_VEC, /// vector ← 8-bit imm ----; replicate imm to all lanes
+    A64_FMOV_VEC2GPR,
+    /// GPR ← SIMD&FP reg, without conversion
+    A64_FMOV_GPR2VEC,
+    /// GPR → SIMD&FP reg, ----
+    A64_FMOV_TOP2GPR,
+    /// GPR ← SIMD&FP top half (of full 128 bits), ----
+    A64_FMOV_GPR2TOP,
+    /// GPR → SIMD&FP top half (of full 128 bits), ----
+    A64_FMOV_REG,
+    /// SIMD&FP ←→ SIMD&FP
+    A64_FMOV_IMM,
+    /// SIMD&FP ← 8-bit float immediate (see VFPExpandImm)
+    A64_FMOV_VEC,
+    /// vector ← 8-bit imm ----; replicate imm to all lanes
 
     /// SIMD Floating-Point Compare
     A64_FCMEQ_REG,
@@ -467,7 +544,8 @@ pub enum Op {
     A64_FMULX_VEC,
     A64_FDIV_VEC,
     A64_FADD_VEC,
-    A64_FCADD, /// complex addition; Inst.imm := rotation in degrees (90, 270)
+    A64_FCADD,
+    /// complex addition; Inst.imm := rotation in degrees (90, 270)
     A64_FSUB_VEC,
     A64_FMAX_VEC,
     A64_FMAXNM_VEC,
@@ -487,8 +565,10 @@ pub enum Op {
     A64_FMLAL_VEC,
     A64_FMLAL2_ELEM,
     A64_FMLAL2_VEC,
-    A64_FCMLA_ELEM, /// Inst.imm := rotation in degrees (0, 90, 180, 270)
-    A64_FCMLA_VEC,  /// ---
+    A64_FCMLA_ELEM,
+    /// Inst.imm := rotation in degrees (0, 90, 180, 270)
+    A64_FCMLA_VEC,
+    /// ---
     A64_FMLS_ELEM,
     A64_FMLS_VEC,
     A64_FMLSL_ELEM,
@@ -514,7 +594,8 @@ pub enum Op {
 
     /// SIMD Bitwise: Logical, Pop Count, Bit Reversal, Byte Swap, Shifts
     A64_AND_VEC,
-    A64_BCAX, /// ARMv8.2-SHA
+    A64_BCAX,
+    /// ARMv8.2-SHA
     A64_BIC_VEC_IMM,
     A64_BIC_VEC_REG,
     A64_BIF,
@@ -524,40 +605,59 @@ pub enum Op {
     A64_CLZ_VEC,
     A64_CNT,
     A64_EOR_VEC,
-    A64_EOR3,    /// ARMv8.2-SHA
-    A64_NOT_VEC, /// also called MVN
+    A64_EOR3,
+    /// ARMv8.2-SHA
+    A64_NOT_VEC,
+    /// also called MVN
     A64_ORN_VEC,
     A64_ORR_VEC_IMM,
     A64_ORR_VEC_REG,
-    A64_MOV_VEC, /// alias of ORR_VEC_REG
-    A64_RAX1, /// ARMv8.2-SHA
+    A64_MOV_VEC,
+    /// alias of ORR_VEC_REG
+    A64_RAX1,
+    /// ARMv8.2-SHA
     A64_RBIT_VEC,
     A64_REV16_VEC,
     A64_REV32_VEC,
     A64_REV64_VEC,
     A64_SHL_IMM,
-    A64_SHL_REG, /// SSHL, USHL, SRSHL, URSHL
-    A64_SHLL,    /// SSHLL, USSHL
-    A64_SHR,     /// SSHR, USHR, SRSHR, URSHR
-    A64_SHRN,    /// SHRN, RSHRN
-    A64_SRA,     /// SSRA, USRA, SRSRA, URSRA
+    A64_SHL_REG,
+    /// SSHL, USHL, SRSHL, URSHL
+    A64_SHLL,
+    /// SSHLL, USSHL
+    A64_SHR,
+    /// SSHR, USHR, SRSHR, URSHR
+    A64_SHRN,
+    /// SHRN, RSHRN
+    A64_SRA,
+    /// SSRA, USRA, SRSRA, URSRA
     A64_SLI,
     A64_SRI,
-    A64_XAR, /// ARMv8.2-SHA
+    A64_XAR,
+    /// ARMv8.2-SHA
 
     /// SIMD Copy, Table Lookup, Transpose, Extract, Insert, Zip, Unzip
     ///
     /// Inst.imm := index i
-    A64_DUP_ELEM, /// ∀k < lanes: Dst[k] ← Src[i] (or if Dst is scalar: Dst ← Src[i])
-    A64_DUP_GPR,  /// ∀k < lanes: Dst[k] ← Xn
+    A64_DUP_ELEM,
+    /// ∀k < lanes: Dst[k] ← Src[i] (or if Dst is scalar: Dst ← Src[i])
+    A64_DUP_GPR,
+    /// ∀k < lanes: Dst[k] ← Xn
     A64_EXT,
-    A64_INS_ELEM, /// Dst[j] ← Src[i], (i, j stored in Inst.ins_elem)
-    A64_INS_GPR,  /// Dst[i] ← Xn
-    A64_MOVI,     /// includes MVNI
-    A64_SMOV,     /// Xd ← sext(Src[i])
-    A64_UMOV,     /// Xd ← Src[i]
-    A64_TBL,      /// Inst.imm := #regs of table ∈ {1,2,3,4}
-    A64_TBX,      /// ---
+    A64_INS_ELEM,
+    /// Dst[j] ← Src[i], (i, j stored in Inst.ins_elem)
+    A64_INS_GPR,
+    /// Dst[i] ← Xn
+    A64_MOVI,
+    /// includes MVNI
+    A64_SMOV,
+    /// Xd ← sext(Src[i])
+    A64_UMOV,
+    /// Xd ← Src[i]
+    A64_TBL,
+    /// Inst.imm := #regs of table ∈ {1,2,3,4}
+    A64_TBX,
+    /// ---
     A64_TRN1,
     A64_TRN2,
     A64_UZP1,
@@ -573,10 +673,14 @@ pub enum Op {
     A64_CMGE_ZERO,
     A64_CMGT_REG,
     A64_CMGT_ZERO,
-    A64_CMHI_REG,  /// no ZERO variant
-    A64_CMHS_REG,  /// no ZERO variant
-    A64_CMLE_ZERO, /// no REG variant
-    A64_CMLT_ZERO, /// no REG variant
+    A64_CMHI_REG,
+    /// no ZERO variant
+    A64_CMHS_REG,
+    /// no ZERO variant
+    A64_CMLE_ZERO,
+    /// no REG variant
+    A64_CMLT_ZERO,
+    /// no REG variant
     A64_CMTST,
 
     /// SIMD Integer Computation (vector <op> vector, vector <op> vector[i])
@@ -613,7 +717,8 @@ pub enum Op {
     A64_MIN_VEC,
 
     A64_DOT_ELEM,
-    A64_DOT_VEC, /// Inst.flags.vec = arrangement of destination (2s, 4s); sources are (8b, 16b)
+    A64_DOT_VEC,
+    /// Inst.flags.vec = arrangement of destination (2s, 4s); sources are (8b, 16b)
 
     /// SIMD Integer Stepwise (both are unsigned exclusive)
     A64_URECPE,
@@ -624,14 +729,20 @@ pub enum Op {
     A64_MLA_VEC,
     A64_MLS_ELEM,
     A64_MLS_VEC,
-    A64_MLAL_ELEM, /// SMLAL, UMLAL
-    A64_MLAL_VEC,  /// SMLAL, UMLAL
-    A64_MLSL_ELEM, /// SMLSL, UMLSL
-    A64_MLSL_VEC,  /// SMLSL, UMLSL
+    A64_MLAL_ELEM,
+    /// SMLAL, UMLAL
+    A64_MLAL_VEC,
+    /// SMLAL, UMLAL
+    A64_MLSL_ELEM,
+    /// SMLSL, UMLSL
+    A64_MLSL_VEC,
+    /// SMLSL, UMLSL
 
     /// SIMD Integer Computation (reduce)
-    A64_ADDP,     /// Scalar; Dd ← Vn.d[1] + Vn.d[0]
-    A64_ADDP_VEC, /// Concatenate Vn:Vm, then add pairwise and store result in Vd
+    A64_ADDP,
+    /// Scalar; Dd ← Vn.d[1] + Vn.d[0]
+    A64_ADDP_VEC,
+    /// Concatenate Vn:Vm, then add pairwise and store result in Vd
     A64_ADDV,
     A64_ADALP,
     A64_ADDLP,
@@ -661,10 +772,14 @@ pub enum Op {
     A64_SQDMLSL_ELEM,
     A64_SQDMLSL_VEC,
 
-    A64_SQDMULH_ELEM, /// SQDMULH, SQRDMULH
-    A64_SQDMULH_VEC,  /// SQDMULH, SQRDMULH
-    A64_SQDMULL_ELEM, /// SQDMULL, SQRDMULL
-    A64_SQDMULL_VEC,  /// SQDMULL, SQRDMULL
+    A64_SQDMULH_ELEM,
+    /// SQDMULH, SQRDMULH
+    A64_SQDMULH_VEC,
+    /// SQDMULH, SQRDMULH
+    A64_SQDMULL_ELEM,
+    /// SQDMULL, SQRDMULL
+    A64_SQDMULL_VEC,
+    /// SQDMULL, SQRDMULL
 
     A64_SQNEG,
 
@@ -675,7 +790,8 @@ pub enum Op {
     A64_SQRDMLSH_VEC,
 
     A64_SQSHLU,
-    A64_SQSHRUN, /// SQSHRUN, SQRSHRUN
+    A64_SQSHRUN,
+    /// SQSHRUN, SQRSHRUN
     A64_SQXTUN,
 
     /// SIMD Polynomial Multiply
@@ -687,21 +803,36 @@ pub enum Op {
 /// upper four bit of the Inst.flags field. The first three bits determine the condition
 /// proper while the LSB inverts the condition if set.
 pub enum Cond {
-    COND_EQ = 0b0000,  // =
-    COND_NE = 0b0001,  // ≠
-    COND_CS = 0b0010,  // Carry Set or ≥, Unsigned (COND_HS)
-    COND_CC = 0b0011,  // Carry Clear or <, Unsigned (COND_LO)
-    COND_MI = 0b0100,  // < 0 (MInus)
-    COND_PL = 0b0101,  // ≥ 0 (PLus)
-    COND_VS = 0b0110,  // Signed Overflow
-    COND_VC = 0b0111,  // No Signed Overflow
-    COND_HI = 0b1000,  // >, Unsigned
-    COND_LS = 0b1001,  // ≤, Unsigned
-    COND_GE = 0b1010,  // ≥, Signed
-    COND_LT = 0b1011,  // <, Signed
-    COND_GT = 0b1100,  // >, Signed
-    COND_LE = 0b1101,  // ≤, Signed
-    COND_AL = 0b1110,  // Always true
+    COND_EQ = 0b0000,
+    // =
+    COND_NE = 0b0001,
+    // ≠
+    COND_CS = 0b0010,
+    // Carry Set or ≥, Unsigned (COND_HS)
+    COND_CC = 0b0011,
+    // Carry Clear or <, Unsigned (COND_LO)
+    COND_MI = 0b0100,
+    // < 0 (MInus)
+    COND_PL = 0b0101,
+    // ≥ 0 (PLus)
+    COND_VS = 0b0110,
+    // Signed Overflow
+    COND_VC = 0b0111,
+    // No Signed Overflow
+    COND_HI = 0b1000,
+    // >, Unsigned
+    COND_LS = 0b1001,
+    // ≤, Unsigned
+    COND_GE = 0b1010,
+    // ≥, Signed
+    COND_LT = 0b1011,
+    // <, Signed
+    COND_GT = 0b1100,
+    // >, Signed
+    COND_LE = 0b1101,
+    // ≤, Signed
+    COND_AL = 0b1110,
+    // Always true
     COND_NV = 0b1111,  // Always true (not "never" as in A32!)
 }
 
@@ -726,32 +857,45 @@ pub enum Shift {
 ///     u64 x0 = a[i]; → ldr x0, [a, i, LSL #3]
 ///
 pub enum AddrMode {
-    AM_SIMPLE,  // [base] -- used by atomics, exclusive, ordered load/stores → check Inst.ldst_order
-    AM_OFF_IMM, // [base, #imm]
-    AM_OFF_REG, // [base, Xm, {LSL #imm}] (#imm either #log2(size) or #0)
-    AM_OFF_EXT, // [base, Wm, {S|U}XTW {#imm}] (#imm either #log2(size) or #0)
-    AM_PRE,     // [base, #imm]!
-    AM_POST,    // [base],#imm  (for LDx, STx also register: [base],Xm)
-    AM_LITERAL  // label
+    AM_SIMPLE,
+    // [base] -- used by atomics, exclusive, ordered load/stores → check Inst.ldst_order
+    AM_OFF_IMM,
+    // [base, #imm]
+    AM_OFF_REG,
+    // [base, Xm, {LSL #imm}] (#imm either #log2(size) or #0)
+    AM_OFF_EXT,
+    // [base, Wm, {S|U}XTW {#imm}] (#imm either #log2(size) or #0)
+    AM_PRE,
+    // [base, #imm]!
+    AM_POST,
+    // [base],#imm  (for LDx, STx also register: [base],Xm)
+    AM_LITERAL,  // label
 }
 
 /// Memory ordering semantics for Atomic instructions and the Load/Stores in the
 /// Exclusive group.
 pub enum MemOrdering {
     MO_NONE,
-    MO_ACQUIRE,    // Load-Acquire -- sequentially consistent Acquire
-    MO_LO_ACQUIRE, // Load-LOAcquire -- Acquire in Limited Ordering Region (LORegion)
-    MO_ACQUIRE_PC, // Load-AcquirePC -- weaker processor consistent (PC) Acquire
-    MO_RELEASE,    // Store-Release
+    MO_ACQUIRE,
+    // Load-Acquire -- sequentially consistent Acquire
+    MO_LO_ACQUIRE,
+    // Load-LOAcquire -- Acquire in Limited Ordering Region (LORegion)
+    MO_ACQUIRE_PC,
+    // Load-AcquirePC -- weaker processor consistent (PC) Acquire
+    MO_RELEASE,
+    // Store-Release
     MO_LO_RELEASE, // Store-LORelease -- Release in LORegion
 }
 
 /// Size, encoded in two bits.
 #[repr(u8)]
 pub enum Size {
-    SZ_B = 0b00, // Byte     -  8 bit
-    SZ_H = 0b01, // Halfword - 16 bit
-    SZ_W = 0b10, // Word     - 32 bit
+    SZ_B = 0b00,
+    // Byte     -  8 bit
+    SZ_H = 0b01,
+    // Halfword - 16 bit
+    SZ_W = 0b10,
+    // Word     - 32 bit
     SZ_X = 0b11, // Extended - 64 bit
 }
 
@@ -759,14 +903,17 @@ pub enum Size {
 /// with the 128-bit quadruple precision.
 #[repr(u8)]
 pub enum FPSize {
-    FSZ_B = Size::SZ_B as u8, // Byte   -   8 bits
-    FSZ_H = Size::SZ_H as u8, // Half   -  16 bits
-    FSZ_S = Size::SZ_W as u8, // Single -  32 bits
+    FSZ_B = Size::SZ_B as u8,
+    // Byte   -   8 bits
+    FSZ_H = Size::SZ_H as u8,
+    // Half   -  16 bits
+    FSZ_S = Size::SZ_W as u8,
+    // Single -  32 bits
     FSZ_D = Size::SZ_X as u8, // Double -  64 bits
 
     /// "Virtual" encoding, never used in the actual instructions.
     /// There, Quad precision is encoded in various incoherent ways.
-    FSZ_Q = 0b111 // Quad   - 128 bits
+    FSZ_Q = 0b111, // Quad   - 128 bits
 }
 
 /// The three-bit Vector Arrangement specifier determines the structure of the
@@ -776,26 +923,39 @@ pub enum FPSize {
 /// only the bottom 64 bits. Scalar SIMD instructions encode their scalars'
 /// precision as FPSize in the upper two bits.
 pub enum VectorArrangement {
-    VA_8B  = ((FPSize::FSZ_B as isize) << 1) | 0, //  64 bit
-    VA_16B = ((FPSize::FSZ_B as isize) << 1) | 1, // 128 bit
-    VA_4H  = ((FPSize::FSZ_H as isize) << 1) | 0, //  64 bit
-    VA_8H  = ((FPSize::FSZ_H as isize) << 1) | 1, // 128 bit
-    VA_2S  = ((FPSize::FSZ_S as isize) << 1) | 0, //  64 bit
-    VA_4S  = ((FPSize::FSZ_S as isize) << 1) | 1, // 128 bit
-    VA_1D  = ((FPSize::FSZ_D as isize) << 1) | 0, //  64 bit
-    VA_2D  = ((FPSize::FSZ_D as isize) << 1) | 1, // 128 bit
+    VA_8B = ((FPSize::FSZ_B as isize) << 1) | 0,
+    //  64 bit
+    VA_16B = ((FPSize::FSZ_B as isize) << 1) | 1,
+    // 128 bit
+    VA_4H = ((FPSize::FSZ_H as isize) << 1) | 0,
+    //  64 bit
+    VA_8H = ((FPSize::FSZ_H as isize) << 1) | 1,
+    // 128 bit
+    VA_2S = ((FPSize::FSZ_S as isize) << 1) | 0,
+    //  64 bit
+    VA_4S = ((FPSize::FSZ_S as isize) << 1) | 1,
+    // 128 bit
+    VA_1D = ((FPSize::FSZ_D as isize) << 1) | 0,
+    //  64 bit
+    VA_2D = ((FPSize::FSZ_D as isize) << 1) | 1, // 128 bit
 }
 
 /// Floating-point rounding mode. See shared/functions/float/fprounding/FPRounding
 /// in the shared pseudocode functions of the A64 ISA documentation. The letter
 /// is the one used in the FCVT* mnemonics.
 pub enum FPRounding {
-    FPR_CURRENT,  // "Current rounding mode"
-    FPR_TIE_EVEN, // N, Nearest with Ties to Even, default IEEE 754 mode
-    FPR_TIE_AWAY, // A, Nearest with Ties Away from Zero
-    FPR_NEG_INF,  // M, → -∞
-    FPR_ZERO,     // Z, → 0
-    FPR_POS_INF,  // P, → +∞
+    FPR_CURRENT,
+    // "Current rounding mode"
+    FPR_TIE_EVEN,
+    // N, Nearest with Ties to Even, default IEEE 754 mode
+    FPR_TIE_AWAY,
+    // A, Nearest with Ties Away from Zero
+    FPR_NEG_INF,
+    // M, → -∞
+    FPR_ZERO,
+    // Z, → 0
+    FPR_POS_INF,
+    // P, → +∞
     FPR_ODD,      // XN, Non-IEEE 754 Round to Odd, only used by FCVTXN(2)
 }
 
@@ -823,11 +983,14 @@ pub enum PStateField {
 }
 
 pub enum FlagMasks {
-    W32 = 1 << 0,         // use the 32-bit W0...W31 facets?
-    SET_FLAGS = 1 << 1,   // modify the NZCV flags? (S mnemonic suffix)
+    W32 = 1 << 0,
+    // use the 32-bit W0...W31 facets?
+    SET_FLAGS = 1 << 1,
+    // modify the NZCV flags? (S mnemonic suffix)
     // SIMD: Is scalar? If so, interpret Inst.flags.vec<2:1> as FPSize precision for the scalar.
     SIMD_SCALAR = 1 << 5,
-    SIMD_SIGNED = 1 << 6, // Integer SIMD: treat values as signed?
+    SIMD_SIGNED = 1 << 6,
+    // Integer SIMD: treat values as signed?
     SIMD_ROUND = 1 << 7,  // Integer SIMD: round result instead of truncating?
 }
 
@@ -911,6 +1074,7 @@ pub struct FcmlaElem {
     rot: u32,
 }
 
+#[derive(Clone)]
 pub struct Inst {
     op: Op,
     flags: u8,
@@ -941,49 +1105,55 @@ pub struct Inst {
     fcmla_elem: FcmlaElem,
 }
 
-const EMPTY: Inst = Inst {
-    op: Op::A64_UNKNOWN,
-    flags: 0,
-    rd: Reg::ZERO_REG,
-    rn: Reg::ZERO_REG,
-    rm: Reg::ZERO_REG,
-    rt2: Reg::ZERO_REG,
-    rs: Reg::ZERO_REG,
-    imm: 0,
-    fimm: 0.0,
-    offset: 0,
-    ra: Reg::ZERO_REG,
-    error: String::new(),
-    movk: Movk { imm16: 0, lsl: 0 },
-    bfm: Bfm { lsb: 0, width: 0 },
-    ccmp: Ccmp { nzcv: 0, imm5: 0 },
-    sys: Sys {
-        op1: 0,
-        op2: 0,
-        crn: 0,
-        crm: 0,
-    },
-    msr_imm: MsrImm { psfld: 0, imm: 0 },
-    tbz: Tbz { offset: 0, bit: 0 },
-    shift: Shift::SH_LSL,
-    rmif: Rmif { mask: 0, ror: 0 },
-    extend: Extend { typ: 0, lsl: 0 },
-    ldst_order: LdstOrder {
-        load: 0,
-        store: 0,
-        rs: Reg::ZERO_REG,
-    },
-    simd_ldst: SimdLdst {
-        nreg: 0,
-        index: 0,
-        offset: 0,
-    },
-    fcvt: Fcvt {
-        mode: 0,
-        fbits: 0,
-        sgn: 0,
-    },
-    frint: Frint { mode: 0, bits: 0 },
-    ins_elem: InsElem { dst: 0, src: 0 },
-    fcmla_elem: FcmlaElem { idx: 0, rot: 0 },
-};
+impl Inst {
+    pub fn empty() -> Inst {
+        Inst {
+            op: Op::A64_UNKNOWN,
+            flags: 0,
+            rd: Reg::ZERO_REG,
+            rn: Reg::ZERO_REG,
+            rm: Reg::ZERO_REG,
+            rt2: Reg::ZERO_REG,
+            rs: Reg::ZERO_REG,
+            imm: 0,
+            fimm: 0.0,
+            offset: 0,
+            ra: Reg::ZERO_REG,
+            error: String::new(),
+            movk: Movk { imm16: 0, lsl: 0 },
+            bfm: Bfm { lsb: 0, width: 0 },
+            ccmp: Ccmp { nzcv: 0, imm5: 0 },
+            sys: Sys {
+                op1: 0,
+                op2: 0,
+                crn: 0,
+                crm: 0,
+            },
+            msr_imm: MsrImm { psfld: 0, imm: 0 },
+            tbz: Tbz { offset: 0, bit: 0 },
+            shift: Shift::SH_LSL,
+            rmif: Rmif { mask: 0, ror: 0 },
+            extend: Extend { typ: 0, lsl: 0 },
+            ldst_order: LdstOrder {
+                load: 0,
+                store: 0,
+                rs: Reg::ZERO_REG,
+            },
+            simd_ldst: SimdLdst {
+                nreg: 0,
+                index: 0,
+                offset: 0,
+            },
+            fcvt: Fcvt {
+                mode: 0,
+                fbits: 0,
+                sgn: 0,
+            },
+            frint: Frint { mode: 0, bits: 0 },
+            ins_elem: InsElem { dst: 0, src: 0 },
+            fcmla_elem: FcmlaElem { idx: 0, rot: 0 },
+        }
+    }
+}
+
+const EMPTY: Inst = Inst::empty();
