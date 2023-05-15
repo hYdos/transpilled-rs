@@ -805,38 +805,47 @@ pub enum Op {
 /// upper four bit of the Inst.flags field. The first three bits determine the condition
 /// proper while the LSB inverts the condition if set.
 #[derive(Clone)]
-pub enum Cond {
-    COND_EQ = 0b0000,
-    // =
-    COND_NE = 0b0001,
-    // ≠
-    COND_CS = 0b0010,
-    // Carry Set or ≥, Unsigned (COND_HS)
-    COND_CC = 0b0011,
-    // Carry Clear or <, Unsigned (COND_LO)
-    COND_MI = 0b0100,
-    // < 0 (MInus)
-    COND_PL = 0b0101,
-    // ≥ 0 (PLus)
-    COND_VS = 0b0110,
-    // Signed Overflow
-    COND_VC = 0b0111,
-    // No Signed Overflow
-    COND_HI = 0b1000,
-    // >, Unsigned
-    COND_LS = 0b1001,
-    // ≤, Unsigned
-    COND_GE = 0b1010,
-    // ≥, Signed
-    COND_LT = 0b1011,
-    // <, Signed
-    COND_GT = 0b1100,
-    // >, Signed
-    COND_LE = 0b1101,
-    // ≤, Signed
-    COND_AL = 0b1110,
-    // Always true
+enum Cond {
+    COND_EQ = 0b0000,  // =
+    COND_NE = 0b0001,  // ≠
+    COND_CS = 0b0010,  // Carry Set or ≥, Unsigned (COND_HS)
+    COND_CC = 0b0011,  // Carry Clear or // <, Unsigned (COND_LO)
+    COND_MI = 0b0100,  // < 0 (MInus)
+    COND_PL = 0b0101,  // ≥ 0 (PLus)
+    COND_VS = 0b0110,  // Signed Overflow
+    COND_VC = 0b0111,  // No Signed Overflow
+    COND_HI = 0b1000,  // >, Unsigned
+    COND_LS = 0b1001,  // ≤, Unsigned
+    COND_GE = 0b1010,  // ≥, Signed
+    COND_LT = 0b1011,  // <, Signed
+    COND_GT = 0b1100,  // >, Signed
+    COND_LE = 0b1101,  // ≤, Signed
+    COND_AL = 0b1110,  // Always true
     COND_NV = 0b1111,  // Always true (not "never" as in A32!)
+}
+
+impl From<u8> for Cond {
+    fn from(flags: u8) -> Self {
+        match (flags >> 4) & 0b1111 {
+            0b0000 => Cond::COND_EQ,
+            0b0001 => Cond::COND_NE,
+            0b0010 => Cond::COND_CS,
+            0b0011 => Cond::COND_CC,
+            0b0100 => Cond::COND_MI,
+            0b0101 => Cond::COND_PL,
+            0b0110 => Cond::COND_VS,
+            0b0111 => Cond::COND_VC,
+            0b1000 => Cond::COND_HI,
+            0b1001 => Cond::COND_LS,
+            0b1010 => Cond::COND_GE,
+            0b1011 => Cond::COND_LT,
+            0b1100 => Cond::COND_GT,
+            0b1101 => Cond::COND_LE,
+            0b1110 => Cond::COND_AL,
+            0b1111 => Cond::COND_NV,
+            _ => unreachable!(), // Optional: Handle the default case if needed
+        }
+    }
 }
 
 #[derive(Clone)]
