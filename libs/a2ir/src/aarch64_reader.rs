@@ -857,19 +857,13 @@ pub enum Shift {
 ///     u64 x0 = a[i]; → ldr x0, [a, i, LSL #3]
 ///
 pub enum AddrMode {
-    AM_SIMPLE,
-    // [base] -- used by atomics, exclusive, ordered load/stores → check Inst.ldst_order
-    AM_OFF_IMM,
-    // [base, #imm]
-    AM_OFF_REG,
-    // [base, Xm, {LSL #imm}] (#imm either #log2(size) or #0)
-    AM_OFF_EXT,
-    // [base, Wm, {S|U}XTW {#imm}] (#imm either #log2(size) or #0)
-    AM_PRE,
-    // [base, #imm]!
-    AM_POST,
-    // [base],#imm  (for LDx, STx also register: [base],Xm)
-    AM_LITERAL,  // label
+    AM_SIMPLE = 0, // [base] -- used by atomics, exclusive, ordered load/stores → check Inst.ldst_order
+    AM_OFF_IMM = 1, // [base, #imm]
+    AM_OFF_REG = 2, // [base, Xm, {LSL #imm}] (#imm either #log2(size) or #0)
+    AM_OFF_EXT = 3, // [base, Wm, {S|U}XTW {#imm}] (#imm either #log2(size) or #0)
+    AM_PRE = 4, // [base, #imm]!
+    AM_POST = 5, // [base],#imm  (for LDx, STx also register: [base],Xm)
+    AM_LITERAL = 6,  // label
 }
 
 /// Memory ordering semantics for Atomic instructions and the Load/Stores in the
