@@ -1156,4 +1156,4 @@ impl Inst {
     }
 }
 
-const EMPTY: Inst = Inst::empty();
+const UNKNOWN_INST: Inst = Inst::empty();
