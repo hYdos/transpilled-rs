@@ -16,6 +16,7 @@
 /// We split up this overloaded register: when we encounter R31 and interpret it as
 /// the stack pointer, we assign a different number. This way, the user does not
 /// need to know which instructions use the SP and which use the ZR.
+#[derive(Clone)]
 pub enum Reg {
     ZERO_REG = 31,
     /// arbitrary
@@ -38,6 +39,7 @@ pub enum Reg {
 /// condition encoded in the Inst.flags field. The various addressing
 /// modes of loads and stores are encoded similarly. See the Inst
 /// structure for more detail.
+#[derive(Clone)]
 pub enum Op {
     A64_UNKNOWN,
     /// unknown instruction (or Op field not set, by accident), Inst.imm contains raw binary instruction
@@ -802,6 +804,7 @@ pub enum Op {
 /// The condition bits used by conditial branches, selects and compares, stored in the
 /// upper four bit of the Inst.flags field. The first three bits determine the condition
 /// proper while the LSB inverts the condition if set.
+#[derive(Clone)]
 pub enum Cond {
     COND_EQ = 0b0000,
     // =
@@ -836,6 +839,7 @@ pub enum Cond {
     COND_NV = 0b1111,  // Always true (not "never" as in A32!)
 }
 
+#[derive(Clone)]
 pub enum Shift {
     SH_LSL = 0b00,
     SH_LSR = 0b01,
@@ -856,18 +860,27 @@ pub enum Shift {
 ///     u64 a[128];
 ///     u64 x0 = a[i]; → ldr x0, [a, i, LSL #3]
 ///
+#[repr(u8)]
+#[derive(Clone)]
 pub enum AddrMode {
-    AM_SIMPLE = 0, // [base] -- used by atomics, exclusive, ordered load/stores → check Inst.ldst_order
-    AM_OFF_IMM = 1, // [base, #imm]
-    AM_OFF_REG = 2, // [base, Xm, {LSL #imm}] (#imm either #log2(size) or #0)
-    AM_OFF_EXT = 3, // [base, Wm, {S|U}XTW {#imm}] (#imm either #log2(size) or #0)
-    AM_PRE = 4, // [base, #imm]!
-    AM_POST = 5, // [base],#imm  (for LDx, STx also register: [base],Xm)
+    AM_SIMPLE = 0,
+    // [base] -- used by atomics, exclusive, ordered load/stores → check Inst.ldst_order
+    AM_OFF_IMM = 1,
+    // [base, #imm]
+    AM_OFF_REG = 2,
+    // [base, Xm, {LSL #imm}] (#imm either #log2(size) or #0)
+    AM_OFF_EXT = 3,
+    // [base, Wm, {S|U}XTW {#imm}] (#imm either #log2(size) or #0)
+    AM_PRE = 4,
+    // [base, #imm]!
+    AM_POST = 5,
+    // [base],#imm  (for LDx, STx also register: [base],Xm)
     AM_LITERAL = 6,  // label
 }
 
 /// Memory ordering semantics for Atomic instructions and the Load/Stores in the
 /// Exclusive group.
+#[derive(Clone)]
 pub enum MemOrdering {
     MO_NONE,
     MO_ACQUIRE,
@@ -883,6 +896,7 @@ pub enum MemOrdering {
 
 /// Size, encoded in two bits.
 #[repr(u8)]
+#[derive(Clone)]
 pub enum Size {
     SZ_B = 0b00,
     // Byte     -  8 bit
@@ -896,6 +910,7 @@ pub enum Size {
 /// Floating-point size, encoded in three bits. Mostly synonymous to Size, but
 /// with the 128-bit quadruple precision.
 #[repr(u8)]
+#[derive(Clone)]
 pub enum FPSize {
     FSZ_B = Size::SZ_B as u8,
     // Byte   -   8 bits
@@ -916,6 +931,7 @@ pub enum FPSize {
 /// The vector registers V0...V31 are 128 bit long, but some arrangements use
 /// only the bottom 64 bits. Scalar SIMD instructions encode their scalars'
 /// precision as FPSize in the upper two bits.
+#[derive(Clone)]
 pub enum VectorArrangement {
     VA_8B = ((FPSize::FSZ_B as isize) << 1) | 0,
     //  64 bit
@@ -937,6 +953,7 @@ pub enum VectorArrangement {
 /// Floating-point rounding mode. See shared/functions/float/fprounding/FPRounding
 /// in the shared pseudocode functions of the A64 ISA documentation. The letter
 /// is the one used in the FCVT* mnemonics.
+#[derive(Clone)]
 pub enum FPRounding {
     FPR_CURRENT,
     // "Current rounding mode"
@@ -954,6 +971,7 @@ pub enum FPRounding {
 }
 
 /// ExtendType: signed(1):size(2)
+#[derive(Clone)]
 pub enum ExtendType {
     UXTB = (0 << 2) | Size::SZ_B as isize,
     UXTH = (0 << 2) | Size::SZ_H as isize,
@@ -966,6 +984,7 @@ pub enum ExtendType {
 }
 
 /// PstateField: encodes which PSTATE bits the MSR_IMM instruction modifies.
+#[derive(Clone)]
 pub enum PStateField {
     PSF_UAO,
     PSF_PAN,
@@ -976,6 +995,7 @@ pub enum PStateField {
     PSF_DAIFClr,
 }
 
+#[derive(Clone)]
 pub enum FlagMasks {
     W32 = 1 << 0,
     // use the 32-bit W0...W31 facets?
@@ -988,21 +1008,25 @@ pub enum FlagMasks {
     SIMD_ROUND = 1 << 7,  // Integer SIMD: round result instead of truncating?
 }
 
+#[derive(Clone)]
 pub struct Movk {
     imm16: u32,
     lsl: u32,
 }
 
+#[derive(Clone)]
 pub struct Bfm {
     lsb: u32,
     width: u32,
 }
 
+#[derive(Clone)]
 pub struct Ccmp {
     nzcv: u32,
     imm5: u32,
 }
 
+#[derive(Clone)]
 pub struct Sys {
     op1: u16,
     op2: u16,
@@ -1010,59 +1034,70 @@ pub struct Sys {
     crm: u16,
 }
 
+#[derive(Clone)]
 pub struct MsrImm {
     psfld: u32,
     imm: u32,
 }
 
+#[derive(Clone)]
 pub struct Tbz {
     offset: i32,
     bit: u32,
 }
 
+#[derive(Clone)]
 pub struct InstShift {
     typ: u32,
     amount: u32,
 }
 
+#[derive(Clone)]
 pub struct Rmif {
     mask: u32,
     ror: u32,
 }
 
+#[derive(Clone)]
 pub struct Extend {
     typ: u32,
     lsl: u32,
 }
 
+#[derive(Clone)]
 pub struct LdstOrder {
     load: u16,
     store: u16,
     rs: Reg,
 }
 
+#[derive(Clone)]
 pub struct SimdLdst {
     nreg: u32,
     index: u16,
     offset: i16,
 }
 
+#[derive(Clone)]
 pub struct Fcvt {
     mode: u32,
     fbits: u16,
     sgn: u16,
 }
 
+#[derive(Clone)]
 pub struct Frint {
     mode: u32,
     bits: u32,
 }
 
+#[derive(Clone)]
 pub struct InsElem {
     dst: u32,
     src: u32,
 }
 
+#[derive(Clone)]
 pub struct FcmlaElem {
     idx: u32,
     rot: u32,
@@ -1099,55 +1134,49 @@ pub struct Inst {
     fcmla_elem: FcmlaElem,
 }
 
-impl Inst {
-    pub fn empty() -> Inst {
-        Inst {
-            op: Op::A64_UNKNOWN,
-            flags: 0,
-            rd: Reg::ZERO_REG,
-            rn: Reg::ZERO_REG,
-            rm: Reg::ZERO_REG,
-            rt2: Reg::ZERO_REG,
-            rs: Reg::ZERO_REG,
-            imm: 0,
-            fimm: 0.0,
-            offset: 0,
-            ra: Reg::ZERO_REG,
-            error: String::new(),
-            movk: Movk { imm16: 0, lsl: 0 },
-            bfm: Bfm { lsb: 0, width: 0 },
-            ccmp: Ccmp { nzcv: 0, imm5: 0 },
-            sys: Sys {
-                op1: 0,
-                op2: 0,
-                crn: 0,
-                crm: 0,
-            },
-            msr_imm: MsrImm { psfld: 0, imm: 0 },
-            tbz: Tbz { offset: 0, bit: 0 },
-            shift: Shift::SH_LSL,
-            rmif: Rmif { mask: 0, ror: 0 },
-            extend: Extend { typ: 0, lsl: 0 },
-            ldst_order: LdstOrder {
-                load: 0,
-                store: 0,
-                rs: Reg::ZERO_REG,
-            },
-            simd_ldst: SimdLdst {
-                nreg: 0,
-                index: 0,
-                offset: 0,
-            },
-            fcvt: Fcvt {
-                mode: 0,
-                fbits: 0,
-                sgn: 0,
-            },
-            frint: Frint { mode: 0, bits: 0 },
-            ins_elem: InsElem { dst: 0, src: 0 },
-            fcmla_elem: FcmlaElem { idx: 0, rot: 0 },
-        }
-    }
-}
-
-const UNKNOWN_INST: Inst = Inst::empty();
+const UNKNOWN_INST: Inst = Inst {
+    op: Op::A64_UNKNOWN,
+    flags: 0,
+    rd: Reg::ZERO_REG,
+    rn: Reg::ZERO_REG,
+    rm: Reg::ZERO_REG,
+    rt2: Reg::ZERO_REG,
+    rs: Reg::ZERO_REG,
+    imm: 0,
+    fimm: 0.0,
+    offset: 0,
+    ra: Reg::ZERO_REG,
+    error: String::new(),
+    movk: Movk { imm16: 0, lsl: 0 },
+    bfm: Bfm { lsb: 0, width: 0 },
+    ccmp: Ccmp { nzcv: 0, imm5: 0 },
+    sys: Sys {
+        op1: 0,
+        op2: 0,
+        crn: 0,
+        crm: 0,
+    },
+    msr_imm: MsrImm { psfld: 0, imm: 0 },
+    tbz: Tbz { offset: 0, bit: 0 },
+    shift: Shift::SH_LSL,
+    rmif: Rmif { mask: 0, ror: 0 },
+    extend: Extend { typ: 0, lsl: 0 },
+    ldst_order: LdstOrder {
+        load: 0,
+        store: 0,
+        rs: Reg::ZERO_REG,
+    },
+    simd_ldst: SimdLdst {
+        nreg: 0,
+        index: 0,
+        offset: 0,
+    },
+    fcvt: Fcvt {
+        mode: 0,
+        fbits: 0,
+        sgn: 0,
+    },
+    frint: Frint { mode: 0, bits: 0 },
+    ins_elem: InsElem { dst: 0, src: 0 },
+    fcmla_elem: FcmlaElem { idx: 0, rot: 0 },
+};
