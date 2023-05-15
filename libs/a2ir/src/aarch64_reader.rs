@@ -1189,3 +1189,160 @@ const UNKNOWN_INST: Inst = Inst {
     ins_elem: InsElem { dst: 0, src: 0 },
     fcmla_elem: FcmlaElem { idx: 0, rot: 0 },
 };
+
+pub fn errinst(err:String) -> Inst {
+    let inst = UNKNOWN_INST;
+    inst.op = Op::A64_ERROR;
+    inst.error = err;
+    return inst;
+}
+
+pub fn fad_get_cond(flags:u8) -> Cond {
+    return ((flags >> 4) & 0b1111).into();
+}
+
+pub fn set_cond(flags:u8, cond:Cond) -> u8 {
+    cond &= 0xF;
+    flags &= 0x0F;
+    return (cond << 4) | flags;
+}
+
+pub fn invert_cond(flags:u8) -> u8 {
+    let cond = fad_get_cond(flags);
+    return set_cond(flags, cond ^ 0b001); // invert LSB
+}
+
+// Addressing mode, for Loads and Stores.
+pub fn fad_get_addrmode(flags:u8) -> AddrMode {
+    return ((flags >> 5) & 0b111) as AddrMode;
+}
+
+pub fn set_addrmode(flags:u8, mode:AddrMode) -> u8 {
+    return ((mode&0b111) << 5) | (flags&0b11111);
+}
+
+// How much memory to load/store (access size) and whether to sign-
+// or zero-extend the value.
+pub fn fad_get_mem_extend(flags:u8) -> ExtendType {
+    return ((flags >> 2) & 0b111) as ExtendType;
+}
+
+pub fn set_mem_extend(flags:u8, memext:ExtendType) -> u8 {
+    return ((memext&0b111) << 2) | (flags&0b11100011);
+}
+
+pub fn fad_get_vec_arrangement(flags:u8) -> VectorArrangement {
+    return ((flags >> 2) & 0b111) as VectorArrangement;
+}
+
+pub fn set_vec_arrangement(flags:u8, va:VectorArrangement) -> u8 {
+    return ((va&0b111) << 2) | (flags&0b11100011);
+}
+
+pub fn fad_get_prec(flags:u8) -> FPSize {
+    return ((flags >> 1) & 0b111) as FPSize;
+}
+
+pub fn set_prec(flags:u8, prec:FPSize) -> u8 {
+    return ((prec&0b111) << 1) | (flags&0b11110001);
+}
+
+pub fn fad_size_from_vec_arrangement(va:VectorArrangement) -> FPSize {
+    return (va >> 1) as FPSize;
+}
+
+// The destination register Rd, if present, occupies bits 0..4.
+// Register 31 is treated as the Zero/Discard register ZR/WZR.
+pub fn regRd(binst:u32) -> Reg {
+    return binst & 0b11111;
+}
+
+// Register 31 is treated as the stack pointer SP.
+pub fn regRdSP(binst:u32) -> Reg {
+    let rd = binst & 0b11111;
+    return if rd == 31 { Reg::STACK_POINTER } else { rd };
+}
+
+// The first operand register Rn, if present, occupies bits 5..9.
+// Register 31 is treated as the Zero/Discard register ZR/WZR.
+pub fn regRn(binst:u32) -> Reg {
+    return (binst >> 5) & 0b11111;
+}
+
+// Register 31 is treated as the stack pointer SP.
+pub fn regRnSP(binst:u32) -> Reg {
+    let rn = (binst >> 5) & 0b11111;
+    return if rn == 31 { Reg::STACK_POINTER } else { rn };
+}
+
+// The second operand register Rm, if present, occupies bits 16..20.
+// Register 31 is treated as the Zero/Discard register ZR/WZR.
+pub fn regRm(binst:u32) -> Reg {
+    return (binst >> 16) & 0b11111;
+}
+
+// Register 31 is treated as the stack pointer SP.
+pub fn regRmSP(binst:u32) -> Reg {
+    let rm = (binst >> 16) & 0b11111;
+    return if rm == 31 { Reg::STACK_POINTER } else { rm };
+}
+
+// sext sign-extends the b-bits number in x to 64 bit. The upper (64-b) bits
+// must be zero. Seldom needed, but fiddly.
+//
+// Taken from https://graphics.stanford.edu/~seander/bithacks.html#VariableSignExtend
+pub fn sext(x:u64, b:u8) -> i64 {
+    let mask = (1 as i64) << (b - 1);
+    return ((x as i64) ^ mask) - mask;
+}
+
+impl Inst {
+    pub fn empty() -> Inst {
+        Inst {
+            op: Op::A64_UNKNOWN,
+            flags: 0,
+            rd: Reg::ZERO_REG,
+            rn: Reg::ZERO_REG,
+            rm: Reg::ZERO_REG,
+            rt2: Reg::ZERO_REG,
+            rs: Reg::ZERO_REG,
+            imm: 0,
+            fimm: 0.0,
+            offset: 0,
+            ra: Reg::ZERO_REG,
+            error: String::new(),
+            movk: Movk { imm16: 0, lsl: 0 },
+            bfm: Bfm { lsb: 0, width: 0 },
+            ccmp: Ccmp { nzcv: 0, imm5: 0 },
+            sys: Sys {
+                op1: 0,
+                op2: 0,
+                crn: 0,
+                crm: 0,
+            },
+            msr_imm: MsrImm { psfld: 0, imm: 0 },
+            tbz: Tbz { offset: 0, bit: 0 },
+            shift: Shift::SH_LSL,
+            rmif: Rmif { mask: 0, ror: 0 },
+            extend: Extend { typ: 0, lsl: 0 },
+            ldst_order: LdstOrder {
+                load: 0,
+                store: 0,
+                rs: Reg::ZERO_REG,
+            },
+            simd_ldst: SimdLdst {
+                nreg: 0,
+                index: 0,
+                offset: 0,
+            },
+            fcvt: Fcvt {
+                mode: 0,
+                fbits: 0,
+                sgn: 0,
+            },
+            frint: Frint { mode: 0, bits: 0 },
+            ins_elem: InsElem { dst: 0, src: 0 },
+            fcmla_elem: FcmlaElem { idx: 0, rot: 0 },
+        }
+    }
+}
