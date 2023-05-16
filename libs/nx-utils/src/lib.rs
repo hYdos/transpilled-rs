@@ -12,15 +12,13 @@ pub enum NroSegmentType {
 }
 
 pub struct NroSegment {
-    segment_type: NroSegmentType,
     offset: usize,
     size: usize,
 }
 
 impl NroSegment {
-    pub fn new(reader: &mut Cursor<Vec<u8>>, segment_type: NroSegmentType) -> NroSegment {
+    pub fn new(reader: &mut Cursor<Vec<u8>>) -> NroSegment {
         NroSegment {
-            segment_type,
             offset: reader.read_u32::<LittleEndian>().unwrap() as usize,
             size: reader.read_u32::<LittleEndian>().unwrap() as usize,
         }
@@ -45,13 +43,13 @@ impl SwitchExecutable {
         reader.read_exact(&mut buf).unwrap();
         let magic = from_utf8(&buf).unwrap();
         assert_eq!(magic, "NRO0");
-        let version = reader.read_u32::<LittleEndian>().unwrap();
-        let header_size = reader.read_u32::<LittleEndian>().unwrap();
+        let _version = reader.read_u32::<LittleEndian>().unwrap();
+        let _header_size = reader.read_u32::<LittleEndian>().unwrap();
         reader.seek(SeekFrom::Current(4)).unwrap();
         let sectors = [
-            NroSegment::new(&mut reader, TEXT),
-            NroSegment::new(&mut reader, RO),
-            NroSegment::new(&mut reader, DATA)
+            NroSegment::new(&mut reader),
+            NroSegment::new(&mut reader),
+            NroSegment::new(&mut reader)
         ];
         let bss_size = reader.read_u32::<LittleEndian>().unwrap();
         reader.seek(SeekFrom::Current(4)).unwrap();

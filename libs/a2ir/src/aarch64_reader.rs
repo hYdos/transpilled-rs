@@ -1,3 +1,9 @@
+use crate::aarch64_reader::ExtendType::{SXTB, SXTH, SXTW, UXTB, UXTH};
+use crate::aarch64_reader::FlagMasks::{SET_FLAGS, W32};
+use crate::aarch64_reader::Op::{A64_ADD_IMM, A64_ADR, A64_ADRP, A64_AND_IMM, A64_ASR_IMM, A64_BFC, A64_BFI, A64_BFM, A64_BFXIL, A64_CMN_IMM, A64_CMP_IMM, A64_EOR_IMM, A64_EXTEND, A64_EXTR, A64_LSL_IMM, A64_LSR_IMM, A64_MOV_IMM, A64_MOV_SP, A64_MOVK, A64_ORR_IMM, A64_ROR_IMM, A64_SBFIZ, A64_SBFM, A64_SBFX, A64_SUB_IMM, A64_TST_IMM, A64_UBFIZ, A64_UBFM, A64_UBFX, A64_UNKNOWN};
+use crate::aarch64_reader::OpKind::{AddSub, AddSubTags, Bitfield, Extract, Logic, Move, PCRelAddr, Unknown};
+use crate::aarch64_reader::Registries::{STACK_POINTER, ZERO_REG};
+
 ///Register 31's interpretation is up to the instruction. Many interpret it as the
 ///zero register ZR/WZR. Reading to it yields a zero, writing discards the result.
 ///Other instructions interpret it as the stack pointer SP.
@@ -26,7 +32,7 @@ mod Registries {
 /// condition encoded in the Inst.flags field. The various addressing
 /// modes of loads and stores are encoded similarly. See the Inst
 /// structure for more detail.
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Eq)]
 pub enum Op {
     A64_UNKNOWN,
     /// unknown instruction (or Op field not set, by accident), Inst.imm contains raw binary instruction
@@ -1282,4 +1288,309 @@ pub fn regRmSP(binst: u32) -> u8 {
 pub fn sext(x: u64, b: u8) -> i64 {
     let mask = (1 as i64) << (b - 1);
     return ((x as i64) ^ mask) - mask;
+}
+
+enum OpKind {
+    Unknown,
+    PCRelAddr,
+    AddSubTags,
+    AddSub,
+    Logic,
+    Move,
+    Bitfield,
+    Extract,
+}
+
+pub fn data_proc_imm(binst: u32) -> Inst {
+    let mut inst = UNKNOWN_INST.clone();
+
+    let op01 = (binst >> 22) & 0b1111; // op0 and op1 together
+    let top3 = (binst >> 29) & 0b111;
+
+    let kind = match op01 {
+        0b0000 | 0b0001 | 0b0010 | 0b0011 => PCRelAddr, // 00xx
+        0b0110 | 0b0111 => AddSubTags, // 011x
+        0b0100 | 0b0101 => AddSub, // 010x
+        0b1000 | 0b1001 => Logic, // 100x
+        0b1010 | 0b1011 => Move, // 101x
+        0b1100 | 0b1101 => Bitfield, // 110x
+        0b1110 | 0b1111 => Extract, // 111x
+        _ => {
+            println!("Unknown Operator Kind {}", op01);
+            Unknown
+        }
+    };
+
+    // Bit 31 (sf) controls length of registers (0 → 32 bit, 1 → 64 bit)
+    // for most of these data processing operations.
+    if (top3 & 0b100) == 0 {
+        inst.flags |= W32;
+    }
+
+    match kind {
+        Unknown => return UNKNOWN_INST,
+        PCRelAddr => {
+            if (top3 & 0b100) == 0 {
+                inst.op = A64_ADR;
+            } else {
+                inst.op = A64_ADRP;
+            }
+
+            inst.flags &= !W32; // no 32-bit variant of these
+
+            // First, just extract the immediate.
+            let immhi: u64 = (binst & (0b1111111111111111111 << 5)) as u64;
+            let immlo: u64 = (top3 & 0b011).into();
+            let uimm = (immhi >> (5 - 2)) | immlo; // pos(immhi) = 5; 2: len(immlo)
+
+            let scale: u64 = if inst.op == A64_ADRP { 4096 } else { 1 }; // ADRP: Page (4K) Address
+            let simm: i64 = scale as i64 * sext(uimm, 21); // PC-relative → signed
+            inst.offset = simm;
+
+            inst.rd = regRd(binst);
+        }
+        AddSubTags => panic!("ADDG, SUBG not supported"),
+        AddSub => {
+            let is_add = (top3 & 0b010) == 0;
+            inst.op = if is_add { A64_ADD_IMM } else { A64_SUB_IMM };
+            if (top3 & 0b001) != 0 {
+                inst.flags |= SET_FLAGS;
+            }
+
+            let unshifted_imm: u64 = ((binst >> 10) & 0b111111111111) as u64;
+            let shift_by_12 = (binst & (1 << 22)) > 0;
+            inst.imm = if shift_by_12 { unshifted_imm << 12 } else { unshifted_imm };
+
+            // ADDS/SUBS and thus CMN/CMP interpret R31 as the zero register,
+            // while normal ADD and SUB treat it as the stack pointer.
+            inst.rd = if inst.flags & SET_FLAGS != 0 { regRd(binst) } else { regRdSP(binst) };
+            inst.rn = regRnSP(binst);
+
+            if inst.rd == ZERO_REG && (inst.flags & SET_FLAGS) != 0 {
+                match inst.op {
+                    A64_ADD_IMM => inst.op = A64_CMN_IMM,
+                    A64_SUB_IMM => inst.op = A64_CMP_IMM,
+                    _ => {} // impossible
+                }
+            } else if inst.op == A64_ADD_IMM && !shift_by_12 && unshifted_imm == 0 && ((inst.rd == STACK_POINTER) || (inst.rn == STACK_POINTER)) {
+                inst.op = A64_MOV_SP;
+            }
+        }
+        Logic => {
+            match top3 & 0b011 {
+                0b00 => inst.op = A64_AND_IMM,
+                0b01 => inst.op = A64_ORR_IMM,
+                0b10 => inst.op = A64_EOR_IMM,
+                0b11 => {
+                    inst.op = if regRd(binst) == ZERO_REG { A64_TST_IMM } else { A64_AND_IMM };
+                    inst.flags |= SET_FLAGS;
+                }
+                _ => panic!("Unexpected Logic Operator {}", top3 & 0b011),
+            }
+
+            let immr: u8 = ((binst >> 16) & 0b111111) as u8;
+            let imms: u8 = ((binst >> 10) & 0b111111) as u8;
+            let N: u8 = if inst.flags & W32 != 0 { 0 } else { ((binst >> 22) & 1) as u8 }; // N is part of imm for 64-bit variants
+            inst.imm = decode_bitmask(N, imms, immr, inst.flags & W32 != 0);
+
+            // ANDS and by extension TST interpret R31 as the zero register, while
+            // regular immediate AND interprets it as the stack pointer.
+            inst.rd = if inst.flags & SET_FLAGS != 0 { regRd(binst) } else { regRdSP(binst) };
+            inst.rn = regRn(binst);
+        }
+        Move => {
+            let hw: u8 = ((binst >> 21) & 0b11) as u8;
+            let shift: u8 = (16 * hw) as u8;
+            let imm16: u64 = ((binst >> 5) & 0xFFFF) as u64;
+
+            match top3 & 0b011 {
+                0b00 => { // MOVN: Move with NOT
+                    inst.op = A64_MOV_IMM;
+                    inst.imm = !(imm16 << shift);
+                }
+                0b01 => return UNKNOWN_INST,
+                0b10 => { // MOVZ: zero other bits
+                    inst.op = A64_MOV_IMM;
+                    inst.imm = imm16 << shift;
+                }
+                0b11 => {// MOVK: keep other bits
+                    inst.op = A64_MOVK;
+                    inst.movk.imm16 = imm16 as u32;
+                    inst.movk.lsl = shift as u32;
+                }
+                _ => {}
+            }
+
+            inst.rd = regRd(binst);
+        }
+        Bitfield => {
+            let op = match top3 & 0b011 { // base instructions
+                0b00 => A64_SBFM,
+                0b01 => A64_BFM,
+                0b10 => A64_UBFM,
+                _ => panic!("data_proc_imm/Bitfield: neither SBFM, BFM or UBFM")
+            };
+
+            let w32 = (inst.flags & W32) != 0;
+            let immr: u8 = ((binst >> 16) & 0b111111) as u8;
+            let imms: u8 = ((binst >> 10) & 0b111111) as u8;
+            let rd = regRd(binst);
+            let rn = regRn(binst);
+            inst = find_bfm_alias(op, w32, rd, rn, immr, imms);
+        }
+        Extract => {
+            inst.op = A64_EXTR;
+            inst.imm = ((binst >> 10) & 0b111111) as u64;
+            inst.rd = regRd(binst);
+            inst.rn = regRn(binst);
+            inst.rm = regRm(binst);
+
+            if inst.rn == inst.rm {
+                inst.op = A64_ROR_IMM;
+                inst.rm = 0; // unused for ROR_IMM → clear again
+            }
+        }
+    }
+
+    inst
+}
+
+
+/// Returns the 0-based index of the highest bit. Should be compiled down
+/// to a single native instruction.
+fn highest_bit(mut x: u32) -> i32 {
+    let mut n = 0;
+    while x != 1 {
+        x >>= 1;
+        n += 1;
+    }
+    return n;
+}
+
+/// Rotate the len-bit number x n places to the right. Based on the first
+/// example at https://en.wikipedia.org/wiki/Bitwise_operation#Circular_shifts
+/// (except turned around, to make it rotate right).
+fn ror(x: u64, n: u32, len: u32) -> u64 {
+    let raw = (x >> n) | (x << (len - n));
+    if len == 64 {
+        return raw;
+    }
+    return raw & ((1u64 << len) - 1); // truncate left side to len bits
+}
+
+
+/// Implementation of the A64 pseudocode function DecodeBitMasks (pp. 1683-1684).
+///
+/// The logical immediate instructions encode 32-bit or 64-bit masks using merely
+/// 12 or 13 bits. We want the decoded mask in our Inst.imm field. We only need
+/// the "wmask" of DecodeBitMasks, so return only that.
+fn decode_bitmask(immN: u8, imms: u8, immr: u8, w32: bool) -> u64 {
+    let M: u32 = if w32 { 32 } else { 64 };
+
+    // Guarantee it's only the number of bits in the pseudocode signature.
+    let immN = immN & 1;
+    let imms = imms & 0b111111;
+    let immr = immr & 0b111111;
+
+    // length of bitmask (1..6)
+    let len = highest_bit(((immN << 6) | ((!imms) & 0b111111)) as u32);
+
+    // 1..6 consecutive ones, basis of pattern
+    let mut levels = 0;
+    for i in 0..len {
+        levels = (levels << 1) | 1;
+    }
+
+    let S: u32 = (imms & levels) as u32;
+    let R: u32 = (immr & levels) as u32;
+    let esize = 1 << len; // 2, 4, 8, 16, 32, 64
+
+    // welem: pattern of 1s then zero-extended to esize
+    // e.g. esize = 8; S+1 = 4 → welem = 0b00001111
+    let mut welem = 0;
+    for _ in 0..(S + 1) {
+        welem = (welem << 1) | 1;
+    }
+
+    // wmask = Replicate(ROR(welem, R));
+    welem = ror(welem, R, esize);
+    let mut wmask = 0;
+    for i in (0..M).step_by(esize as usize) {
+        wmask = (wmask << esize) | welem;
+    }
+
+    return wmask;
+}
+
+fn find_bfm_alias(op: Op, w32: bool, rd: u8, rn: u8, immr: u8, imms: u8) -> Inst {
+    let mut inst = UNKNOWN_INST;
+    let all_ones: u8 = if w32 { 31 } else { 63 }; // u8
+    let bits: u8 = if w32 { 32 } else { 64 }; // u8
+
+    inst.rd = rd;
+    inst.rn = rn;
+    if w32 {
+        inst.flags |= W32;
+    }
+
+    if op == A64_BFM {
+        if imms >= immr {
+            inst.op = A64_BFXIL;
+            inst.bfm.lsb = immr as u32;
+            inst.bfm.width = (imms - immr + 1) as u32;
+            return inst;
+        }
+
+        inst.op = if rn == ZERO_REG { A64_BFC } else { A64_BFI };
+        inst.bfm.lsb = (bits - immr) as u32;
+        inst.bfm.width = (imms + 1) as u32;
+        return inst;
+    }
+
+    let sign = op == A64_SBFM;
+
+    if !sign && imms as u8 + 1 == immr as u8 && imms as u8 != all_ones {
+        inst.op = A64_LSL_IMM;
+        inst.imm = (all_ones - imms) as u64;
+        return inst;
+    }
+
+    if imms as u8 == all_ones {
+        inst.op = if sign { A64_ASR_IMM } else { A64_LSR_IMM };
+        inst.imm = immr as u64;
+        return inst;
+    }
+
+    if imms < immr {
+        inst.op = if sign { A64_SBFIZ } else { A64_UBFIZ };
+        inst.bfm.lsb = (bits - immr) as u32;
+        inst.bfm.width = (imms + 1) as u32;
+        return inst;
+    }
+
+    if immr == 0 {
+        match imms {
+            7 => {
+                inst.op = A64_EXTEND;
+                inst.extend.typ = if sign { SXTB } else { UXTB } as u32;
+                return inst;
+            }
+            15 => {
+                inst.op = A64_EXTEND;
+                inst.extend.typ = if sign { SXTH } else { UXTH } as u32;
+                return inst;
+            }
+            31 => {
+                inst.op = A64_EXTEND;
+                inst.extend.typ = SXTW as u32;
+                return if sign { inst } else { panic!("find_bfm_alias: there is no UXTW instruction") };
+            }
+            _ => {}
+        }
+    }
+
+    inst.op = if sign { A64_SBFX } else { A64_UBFX };
+    inst.bfm.lsb = immr as u32;
+    inst.bfm.width = (imms - immr + 1) as u32;
+    inst
 }

@@ -6,3 +6,9 @@ edition = "2021"
 [dependencies]
 nx-utils = { path = "libs/nx-utils" }
 a2ir = { path = "libs/a2ir" }
+
+[workspace]
+members = [
+    "libs/nx-utils",
+    "libs/a2ir"
+]
