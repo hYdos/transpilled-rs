@@ -1,26 +1,13 @@
-/// This file is based off of https://github.com/okitec/farmdec
-// IMPORTANT Remember These:
-// unsigned int = u8;
-// uint8_t      = u8;
-// uint16_t     = u16;
-// uint32_t     = u32;
-// uint64_t     = u64;
-// int16_t      = i16;
-// int32_t      = i32;
-// int64_t      = i64;
-
-/// Register 31's interpretation is up to the instruction. Many interpret it as the
-/// zero register ZR/WZR. Reading to it yields a zero, writing discards the result.
-/// Other instructions interpret it as the stack pointer SP.
+///Register 31's interpretation is up to the instruction. Many interpret it as the
+///zero register ZR/WZR. Reading to it yields a zero, writing discards the result.
+///Other instructions interpret it as the stack pointer SP.
 ///
-/// We split up this overloaded register: when we encounter R31 and interpret it as
-/// the stack pointer, we assign a different number. This way, the user does not
-/// need to know which instructions use the SP and which use the ZR.
-#[derive(Clone)]
-pub enum Reg {
-    ZERO_REG = 31,
-    /// arbitrary
-    STACK_POINTER = 100,
+///We split up this overloaded register: when we encounter R31 and interpret it as
+///the stack pointer, we assign a different number. This way, the user does not
+///need to know which instructions use the SP and which use the ZR.
+mod Registries {
+    pub const ZERO_REG: u8 = 31;
+    pub const STACK_POINTER: u8 = 100;
 }
 
 /// Opcodes ordered and grouped according to the Top-level Encodings
@@ -804,56 +791,52 @@ pub enum Op {
 /// The condition bits used by conditial branches, selects and compares, stored in the
 /// upper four bit of the Inst.flags field. The first three bits determine the condition
 /// proper while the LSB inverts the condition if set.
-#[derive(Clone)]
-enum Cond {
-    COND_EQ = 0b0000,  // =
-    COND_NE = 0b0001,  // ≠
-    COND_CS = 0b0010,  // Carry Set or ≥, Unsigned (COND_HS)
-    COND_CC = 0b0011,  // Carry Clear or // <, Unsigned (COND_LO)
-    COND_MI = 0b0100,  // < 0 (MInus)
-    COND_PL = 0b0101,  // ≥ 0 (PLus)
-    COND_VS = 0b0110,  // Signed Overflow
-    COND_VC = 0b0111,  // No Signed Overflow
-    COND_HI = 0b1000,  // >, Unsigned
-    COND_LS = 0b1001,  // ≤, Unsigned
-    COND_GE = 0b1010,  // ≥, Signed
-    COND_LT = 0b1011,  // <, Signed
-    COND_GT = 0b1100,  // >, Signed
-    COND_LE = 0b1101,  // ≤, Signed
-    COND_AL = 0b1110,  // Always true
-    COND_NV = 0b1111,  // Always true (not "never" as in A32!)
+pub mod Cond {
+    /// =
+    pub const COND_EQ: u8 = 0b0000;
+    /// ≠
+    pub const COND_NE: u8 = 0b0001;
+    /// Carry Set
+    pub const COND_CS: u8 = 0b0010;
+    /// ≥, Unsigned (COND_HS)
+    pub const COND_HS: u8 = 0b0010;
+    /// Carry Clear
+    pub const COND_CC: u8 = 0b0011;
+    /// <, Unsigned (COND_LO)
+    pub const COND_LO: u8 = 0b0011;
+    /// < 0 (MInus)
+    pub const COND_MI: u8 = 0b0100;
+    /// ≥ 0 (PLus)
+    pub const COND_PL: u8 = 0b0101;
+    /// Signed Overflow
+    pub const COND_VS: u8 = 0b0110;
+    /// No Signed Overflow
+    pub const COND_VC: u8 = 0b0111;
+    /// >, Unsigned
+    pub const COND_HI: u8 = 0b1000;
+    /// ≤, Unsigned
+    pub const COND_LS: u8 = 0b1001;
+    /// ≥, Signed
+    pub const COND_GE: u8 = 0b1010;
+    /// <, Signed
+    pub const COND_LT: u8 = 0b1011;
+    /// >, Signed
+    pub const COND_GT: u8 = 0b1100;
+    /// ≤, Signed
+    pub const COND_LE: u8 = 0b1101;
+    /// Always true
+    pub const COND_AL: u8 = 0b1110;
+    /// Always true (not "never" as in A32!)
+    pub const COND_NV: u8 = 0b1111;
 }
 
-impl From<u8> for Cond {
-    fn from(flags: u8) -> Self {
-        match (flags >> 4) & 0b1111 {
-            0b0000 => Cond::COND_EQ,
-            0b0001 => Cond::COND_NE,
-            0b0010 => Cond::COND_CS,
-            0b0011 => Cond::COND_CC,
-            0b0100 => Cond::COND_MI,
-            0b0101 => Cond::COND_PL,
-            0b0110 => Cond::COND_VS,
-            0b0111 => Cond::COND_VC,
-            0b1000 => Cond::COND_HI,
-            0b1001 => Cond::COND_LS,
-            0b1010 => Cond::COND_GE,
-            0b1011 => Cond::COND_LT,
-            0b1100 => Cond::COND_GT,
-            0b1101 => Cond::COND_LE,
-            0b1110 => Cond::COND_AL,
-            0b1111 => Cond::COND_NV,
-            _ => unreachable!(), // Optional: Handle the default case if needed
-        }
-    }
-}
-
-#[derive(Clone)]
-pub enum Shift {
-    SH_LSL = 0b00,
-    SH_LSR = 0b01,
-    SH_ASR = 0b10,
-    SH_ROR = 0b11, // only for RORV instruction; shifted add/sub does not support it (SH_RESERVED)
+pub mod Shift {
+    pub const SH_LSL: u8 = 0b00;
+    pub const SH_LSR: u8 = 0b01;
+    pub const SH_ASR: u8 = 0b10;
+    pub const SH_ROR: u8 = 0b11;
+    // only for RORV instruction; shifted add/sub does not support it
+    pub const SH_RESERVED: u8 = SH_ROR;
 }
 
 /// Addressing modes, stored in the top three bits of the flags field
@@ -869,22 +852,21 @@ pub enum Shift {
 ///     u64 a[128];
 ///     u64 x0 = a[i]; → ldr x0, [a, i, LSL #3]
 ///
-#[repr(u8)]
-#[derive(Clone)]
-pub enum AddrMode {
-    AM_SIMPLE = 0,
-    // [base] -- used by atomics, exclusive, ordered load/stores → check Inst.ldst_order
-    AM_OFF_IMM = 1,
-    // [base, #imm]
-    AM_OFF_REG = 2,
-    // [base, Xm, {LSL #imm}] (#imm either #log2(size) or #0)
-    AM_OFF_EXT = 3,
-    // [base, Wm, {S|U}XTW {#imm}] (#imm either #log2(size) or #0)
-    AM_PRE = 4,
-    // [base, #imm]!
-    AM_POST = 5,
-    // [base],#imm  (for LDx, STx also register: [base],Xm)
-    AM_LITERAL = 6,  // label
+pub mod AddrMode {
+    /// [base] -- used by atomics, exclusive, ordered load/stores → check Inst.ldst_order
+    pub const AM_SIMPLE: u8 = 0;
+    /// [base, #imm]
+    pub const AM_OFF_IMM: u8 = 1;
+    /// [base, Xm, {LSL #imm}] (#imm either #log2(size) or #0)
+    pub const AM_OFF_REG: u8 = 2;
+    /// [base, Wm, {S|U}XTW {#imm}] (#imm either #log2(size) or #0)
+    pub const AM_OFF_EXT: u8 = 3;
+    /// [base, #imm]!
+    pub const AM_PRE: u8 = 4;
+    /// [base],#imm  (for LDx, STx also register: [base],Xm)
+    pub const AM_POST: u8 = 5;
+    /// label
+    pub const AM_LITERAL: u8 = 6;
 }
 
 /// Memory ordering semantics for Atomic instructions and the Load/Stores in the
@@ -892,46 +874,48 @@ pub enum AddrMode {
 #[derive(Clone)]
 pub enum MemOrdering {
     MO_NONE,
+    /// Load-Acquire -- sequentially consistent Acquire
     MO_ACQUIRE,
-    // Load-Acquire -- sequentially consistent Acquire
+    /// Load-LOAcquire -- Acquire in Limited Ordering Region (LORegion)
     MO_LO_ACQUIRE,
-    // Load-LOAcquire -- Acquire in Limited Ordering Region (LORegion)
+    /// Load-AcquirePC -- weaker processor consistent (PC) Acquire
     MO_ACQUIRE_PC,
-    // Load-AcquirePC -- weaker processor consistent (PC) Acquire
+    /// Store-Release
     MO_RELEASE,
-    // Store-Release
-    MO_LO_RELEASE, // Store-LORelease -- Release in LORegion
+    /// Store-LORelease -- Release in LORegion
+    MO_LO_RELEASE,
 }
 
 /// Size, encoded in two bits.
-#[repr(u8)]
-#[derive(Clone)]
-pub enum Size {
-    SZ_B = 0b00,
-    // Byte     -  8 bit
-    SZ_H = 0b01,
-    // Halfword - 16 bit
-    SZ_W = 0b10,
-    // Word     - 32 bit
-    SZ_X = 0b11, // Extended - 64 bit
+pub mod Size {
+    /// Byte     -  8 bit
+    pub const SZ_B: u8 = 0b00;
+    /// Halfword - 16 bit
+    pub const SZ_H: u8 = 0b01;
+    /// Word     - 32 bit
+    pub const SZ_W: u8 = 0b10;
+    /// Extended - 64 bit
+    pub const SZ_X: u8 = 0b11;
 }
 
 /// Floating-point size, encoded in three bits. Mostly synonymous to Size, but
 /// with the 128-bit quadruple precision.
-#[repr(u8)]
-#[derive(Clone)]
-pub enum FPSize {
-    FSZ_B = Size::SZ_B as u8,
-    // Byte   -   8 bits
-    FSZ_H = Size::SZ_H as u8,
-    // Half   -  16 bits
-    FSZ_S = Size::SZ_W as u8,
-    // Single -  32 bits
-    FSZ_D = Size::SZ_X as u8, // Double -  64 bits
+pub mod FPSize {
+    use crate::aarch64_reader::Size;
 
-    /// "Virtual" encoding, never used in the actual instructions.
-    /// There, Quad precision is encoded in various incoherent ways.
-    FSZ_Q = 0b111, // Quad   - 128 bits
+    /// Byte   -   8 bits
+    pub const FSZ_B: u8 = Size::SZ_B;
+    /// Half   -  16 bits
+    pub const FSZ_H: u8 = Size::SZ_H;
+    /// Single -  32 bits
+    pub const FSZ_S: u8 = Size::SZ_W;
+    /// Double -  64 bits
+    pub const FSZ_D: u8 = Size::SZ_X;
+
+    // "Virtual" encoding, never used in the actual instructions.
+    // There, Quad precision is encoded in various incoherent ways.
+    /// Quad   - 128 bits
+    pub const FSZ_Q: u8 = 0b111;
 }
 
 /// The three-bit Vector Arrangement specifier determines the structure of the
@@ -940,23 +924,25 @@ pub enum FPSize {
 /// The vector registers V0...V31 are 128 bit long, but some arrangements use
 /// only the bottom 64 bits. Scalar SIMD instructions encode their scalars'
 /// precision as FPSize in the upper two bits.
-#[derive(Clone)]
-pub enum VectorArrangement {
-    VA_8B = ((FPSize::FSZ_B as isize) << 1) | 0,
-    //  64 bit
-    VA_16B = ((FPSize::FSZ_B as isize) << 1) | 1,
-    // 128 bit
-    VA_4H = ((FPSize::FSZ_H as isize) << 1) | 0,
-    //  64 bit
-    VA_8H = ((FPSize::FSZ_H as isize) << 1) | 1,
-    // 128 bit
-    VA_2S = ((FPSize::FSZ_S as isize) << 1) | 0,
-    //  64 bit
-    VA_4S = ((FPSize::FSZ_S as isize) << 1) | 1,
-    // 128 bit
-    VA_1D = ((FPSize::FSZ_D as isize) << 1) | 0,
-    //  64 bit
-    VA_2D = ((FPSize::FSZ_D as isize) << 1) | 1, // 128 bit
+pub mod VectorArrangement {
+    use crate::aarch64_reader::FPSize;
+
+    ///  64 bit
+    pub const VA_8B: u8 = (FPSize::FSZ_B << 1) | 0;
+    /// 128 bit
+    pub const VA_16B: u8 = (FPSize::FSZ_B << 1) | 1;
+    ///  64 bit
+    pub const VA_4H: u8 = (FPSize::FSZ_H << 1) | 0;
+    /// 128 bit
+    pub const VA_8H: u8 = (FPSize::FSZ_H << 1) | 1;
+    ///  64 bit
+    pub const VA_2S: u8 = (FPSize::FSZ_S << 1) | 0;
+    /// 128 bit
+    pub const VA_4S: u8 = (FPSize::FSZ_S << 1) | 1;
+    ///  64 bit
+    pub const VA_1D: u8 = (FPSize::FSZ_D << 1) | 0;
+    /// 128 bit
+    pub const VA_2D: u8 = (FPSize::FSZ_D << 1) | 1;
 }
 
 /// Floating-point rounding mode. See shared/functions/float/fprounding/FPRounding
@@ -964,32 +950,34 @@ pub enum VectorArrangement {
 /// is the one used in the FCVT* mnemonics.
 #[derive(Clone)]
 pub enum FPRounding {
+    /// "Current rounding mode"
     FPR_CURRENT,
-    // "Current rounding mode"
+    /// N, Nearest with Ties to Even, default IEEE 754 mode
     FPR_TIE_EVEN,
-    // N, Nearest with Ties to Even, default IEEE 754 mode
+    /// A, Nearest with Ties Away from Zero
     FPR_TIE_AWAY,
-    // A, Nearest with Ties Away from Zero
+    /// M, → -∞
     FPR_NEG_INF,
-    // M, → -∞
+    /// Z, → 0
     FPR_ZERO,
-    // Z, → 0
+    /// P, → +∞
     FPR_POS_INF,
-    // P, → +∞
-    FPR_ODD,      // XN, Non-IEEE 754 Round to Odd, only used by FCVTXN(2)
+    /// XN, Non-IEEE 754 Round to Odd, only used by FCVTXN(2)
+    FPR_ODD,
 }
 
 /// ExtendType: signed(1):size(2)
-#[derive(Clone)]
-pub enum ExtendType {
-    UXTB = (0 << 2) | Size::SZ_B as isize,
-    UXTH = (0 << 2) | Size::SZ_H as isize,
-    UXTW = (0 << 2) | Size::SZ_W as isize,
-    UXTX = (0 << 2) | Size::SZ_X as isize,
-    SXTB = (1 << 2) | Size::SZ_B as isize,
-    SXTH = (1 << 2) | Size::SZ_H as isize,
-    SXTW = (1 << 2) | Size::SZ_W as isize,
-    SXTX = (1 << 2) | Size::SZ_X as isize,
+pub mod ExtendType {
+    use crate::aarch64_reader::Size;
+
+    pub const UXTB: u8 = (0 << 2) | Size::SZ_B;
+    pub const UXTH: u8 = (0 << 2) | Size::SZ_H;
+    pub const UXTW: u8 = (0 << 2) | Size::SZ_W;
+    pub const UXTX: u8 = (0 << 2) | Size::SZ_X;
+    pub const SXTB: u8 = (1 << 2) | Size::SZ_B;
+    pub const SXTH: u8 = (1 << 2) | Size::SZ_H;
+    pub const SXTW: u8 = (1 << 2) | Size::SZ_W;
+    pub const SXTX: u8 = (1 << 2) | Size::SZ_X;
 }
 
 /// PstateField: encodes which PSTATE bits the MSR_IMM instruction modifies.
@@ -1004,17 +992,17 @@ pub enum PStateField {
     PSF_DAIFClr,
 }
 
-#[derive(Clone)]
-pub enum FlagMasks {
-    W32 = 1 << 0,
-    // use the 32-bit W0...W31 facets?
-    SET_FLAGS = 1 << 1,
-    // modify the NZCV flags? (S mnemonic suffix)
-    // SIMD: Is scalar? If so, interpret Inst.flags.vec<2:1> as FPSize precision for the scalar.
-    SIMD_SCALAR = 1 << 5,
-    SIMD_SIGNED = 1 << 6,
-    // Integer SIMD: treat values as signed?
-    SIMD_ROUND = 1 << 7,  // Integer SIMD: round result instead of truncating?
+pub mod FlagMasks {
+    /// use the 32-bit W0...W31 facets?
+    pub const W32: u8 = 1 << 0;
+    /// modify the NZCV flags? (S mnemonic suffix)
+    pub const SET_FLAGS: u8 = 1 << 1;
+    /// SIMD: Is scalar? If so, interpret Inst.flags.vec<2:1> as FPSize precision for the scalar.
+    pub const SIMD_SCALAR: u8 = 1 << 5;
+    /// Integer SIMD: treat values as signed?
+    pub const SIMD_SIGNED: u8 = 1 << 6;
+    /// Integer SIMD: round result instead of truncating?
+    pub const SIMD_ROUND: u8 = 1 << 7;
 }
 
 #[derive(Clone)]
@@ -1077,7 +1065,7 @@ pub struct Extend {
 pub struct LdstOrder {
     load: u16,
     store: u16,
-    rs: Reg,
+    rs: u8,
 }
 
 #[derive(Clone)]
@@ -1116,15 +1104,15 @@ pub struct FcmlaElem {
 pub struct Inst {
     op: Op,
     flags: u8,
-    rd: Reg,
-    rn: Reg,
-    rm: Reg,
-    rt2: Reg,
-    rs: Reg,
+    rd: u8,
+    rn: u8,
+    rm: u8,
+    rt2: u8,
+    rs: u8,
     imm: u64,
     fimm: f64,
     offset: i64,
-    ra: Reg,
+    ra: u8,
     error: String,
     movk: Movk,
     bfm: Bfm,
@@ -1132,7 +1120,7 @@ pub struct Inst {
     sys: Sys,
     msr_imm: MsrImm,
     tbz: Tbz,
-    shift: Shift,
+    shift: u8,
     rmif: Rmif,
     extend: Extend,
     ldst_order: LdstOrder,
@@ -1146,15 +1134,15 @@ pub struct Inst {
 const UNKNOWN_INST: Inst = Inst {
     op: Op::A64_UNKNOWN,
     flags: 0,
-    rd: Reg::ZERO_REG,
-    rn: Reg::ZERO_REG,
-    rm: Reg::ZERO_REG,
-    rt2: Reg::ZERO_REG,
-    rs: Reg::ZERO_REG,
+    rd: 0,
+    rn: 0,
+    rm: 0,
+    rt2: 0,
+    rs: 0,
     imm: 0,
     fimm: 0.0,
     offset: 0,
-    ra: Reg::ZERO_REG,
+    ra: 0,
     error: String::new(),
     movk: Movk { imm16: 0, lsl: 0 },
     bfm: Bfm { lsb: 0, width: 0 },
@@ -1173,7 +1161,7 @@ const UNKNOWN_INST: Inst = Inst {
     ldst_order: LdstOrder {
         load: 0,
         store: 0,
-        rs: Reg::ZERO_REG,
+        rs: Registries::ZERO_REG,
     },
     simd_ldst: SimdLdst {
         nreg: 0,
@@ -1190,159 +1178,108 @@ const UNKNOWN_INST: Inst = Inst {
     fcmla_elem: FcmlaElem { idx: 0, rot: 0 },
 };
 
-pub fn errinst(err:String) -> Inst {
-    let inst = UNKNOWN_INST;
+pub fn errinst(err: String) -> Inst {
+    let mut inst = UNKNOWN_INST;
     inst.op = Op::A64_ERROR;
     inst.error = err;
     return inst;
 }
 
-pub fn fad_get_cond(flags:u8) -> Cond {
-    return ((flags >> 4) & 0b1111).into();
+pub fn fad_get_cond(flags: u8) -> u8 {
+    return (flags >> 4) & 0b1111;
 }
 
-pub fn set_cond(flags:u8, cond:Cond) -> u8 {
-    cond &= 0xF;
-    flags &= 0x0F;
-    return (cond << 4) | flags;
+fn set_cond(flags: u8, cond: u8) -> u8 {
+    let cond = cond as u8 & 0xF;
+    let flags = flags & 0x0F;
+    (cond << 4) | flags
 }
 
-pub fn invert_cond(flags:u8) -> u8 {
+pub fn invert_cond(flags: u8) -> u8 {
     let cond = fad_get_cond(flags);
-    return set_cond(flags, cond ^ 0b001); // invert LSB
+    return set_cond(flags, cond as u8 ^ 0b001); // invert LSB
 }
 
 // Addressing mode, for Loads and Stores.
-pub fn fad_get_addrmode(flags:u8) -> AddrMode {
-    return ((flags >> 5) & 0b111) as AddrMode;
+pub fn fad_get_addrmode(flags: u8) -> u8 {
+    return (flags >> 5) & 0b111;
 }
 
-pub fn set_addrmode(flags:u8, mode:AddrMode) -> u8 {
-    return ((mode&0b111) << 5) | (flags&0b11111);
+pub fn set_addrmode(flags: u8, mode: u8) -> u8 {
+    return ((mode & 0b111) << 5) | (flags & 0b11111);
 }
 
 // How much memory to load/store (access size) and whether to sign-
 // or zero-extend the value.
-pub fn fad_get_mem_extend(flags:u8) -> ExtendType {
-    return ((flags >> 2) & 0b111) as ExtendType;
+pub fn fad_get_mem_extend(flags: u8) -> u8 {
+    return (flags >> 2) & 0b111;
 }
 
-pub fn set_mem_extend(flags:u8, memext:ExtendType) -> u8 {
-    return ((memext&0b111) << 2) | (flags&0b11100011);
+pub fn set_mem_extend(flags: u8, memext: u8) -> u8 {
+    return ((memext & 0b111) << 2) | (flags & 0b11100011);
 }
 
-pub fn fad_get_vec_arrangement(flags:u8) -> VectorArrangement {
-    return ((flags >> 2) & 0b111) as VectorArrangement;
+pub fn fad_get_vec_arrangement(flags: u8) -> u8 {
+    return (flags >> 2) & 0b111;
 }
 
-pub fn set_vec_arrangement(flags:u8, va:VectorArrangement) -> u8 {
-    return ((va&0b111) << 2) | (flags&0b11100011);
+pub fn set_vec_arrangement(flags: u8, va: u8) -> u8 {
+    return ((va & 0b111) << 2) | (flags & 0b11100011);
 }
 
-pub fn fad_get_prec(flags:u8) -> FPSize {
-    return ((flags >> 1) & 0b111) as FPSize;
+pub fn fad_get_prec(flags: u8) -> u8 {
+    return (flags >> 1) & 0b111;
 }
 
-pub fn set_prec(flags:u8, prec:FPSize) -> u8 {
-    return ((prec&0b111) << 1) | (flags&0b11110001);
+pub fn set_prec(flags: u8, prec: u8) -> u8 {
+    return ((prec & 0b111) << 1) | (flags & 0b11110001);
 }
 
-pub fn fad_size_from_vec_arrangement(va:VectorArrangement) -> FPSize {
-    return (va >> 1) as FPSize;
+pub fn fad_size_from_vec_arrangement(va: u8) -> u8 {
+    return va >> 1;
 }
 
 // The destination register Rd, if present, occupies bits 0..4.
 // Register 31 is treated as the Zero/Discard register ZR/WZR.
-pub fn regRd(binst:u32) -> Reg {
-    return binst & 0b11111;
+pub fn regRd(binst: u32) -> u8 {
+    return (binst & 0b11111) as u8;
 }
 
 // Register 31 is treated as the stack pointer SP.
-pub fn regRdSP(binst:u32) -> Reg {
+pub fn regRdSP(binst: u32) -> u8 {
     let rd = binst & 0b11111;
-    return if rd == 31 { Reg::STACK_POINTER } else { rd };
+    return if rd == 31 { Registries::STACK_POINTER } else { rd.try_into().unwrap() };
 }
 
 // The first operand register Rn, if present, occupies bits 5..9.
 // Register 31 is treated as the Zero/Discard register ZR/WZR.
-pub fn regRn(binst:u32) -> Reg {
-    return (binst >> 5) & 0b11111;
+pub fn regRn(binst: u32) -> u8 {
+    return ((binst >> 5) & 0b11111).try_into().unwrap();
 }
 
 // Register 31 is treated as the stack pointer SP.
-pub fn regRnSP(binst:u32) -> Reg {
+pub fn regRnSP(binst: u32) -> u8 {
     let rn = (binst >> 5) & 0b11111;
-    return if rn == 31 { Reg::STACK_POINTER } else { rn };
+    return if rn == 31 { Registries::STACK_POINTER } else { rn.try_into().unwrap() };
 }
 
 // The second operand register Rm, if present, occupies bits 16..20.
 // Register 31 is treated as the Zero/Discard register ZR/WZR.
-pub fn regRm(binst:u32) -> Reg {
-    return (binst >> 16) & 0b11111;
+pub fn regRm(binst: u32) -> u8 {
+    return ((binst >> 16) & 0b11111).try_into().unwrap();
 }
 
 // Register 31 is treated as the stack pointer SP.
-pub fn regRmSP(binst:u32) -> Reg {
+pub fn regRmSP(binst: u32) -> u8 {
     let rm = (binst >> 16) & 0b11111;
-    return if rm == 31 { Reg::STACK_POINTER } else { rm };
+    return if rm == 31 { Registries::STACK_POINTER } else { rm.try_into().unwrap() };
 }
 
 // sext sign-extends the b-bits number in x to 64 bit. The upper (64-b) bits
 // must be zero. Seldom needed, but fiddly.
 //
 // Taken from https://graphics.stanford.edu/~seander/bithacks.html#VariableSignExtend
-pub fn sext(x:u64, b:u8) -> i64 {
+pub fn sext(x: u64, b: u8) -> i64 {
     let mask = (1 as i64) << (b - 1);
     return ((x as i64) ^ mask) - mask;
-}
-
-impl Inst {
-    pub fn empty() -> Inst {
-        Inst {
-            op: Op::A64_UNKNOWN,
-            flags: 0,
-            rd: Reg::ZERO_REG,
-            rn: Reg::ZERO_REG,
-            rm: Reg::ZERO_REG,
-            rt2: Reg::ZERO_REG,
-            rs: Reg::ZERO_REG,
-            imm: 0,
-            fimm: 0.0,
-            offset: 0,
-            ra: Reg::ZERO_REG,
-            error: String::new(),
-            movk: Movk { imm16: 0, lsl: 0 },
-            bfm: Bfm { lsb: 0, width: 0 },
-            ccmp: Ccmp { nzcv: 0, imm5: 0 },
-            sys: Sys {
-                op1: 0,
-                op2: 0,
-                crn: 0,
-                crm: 0,
-            },
-            msr_imm: MsrImm { psfld: 0, imm: 0 },
-            tbz: Tbz { offset: 0, bit: 0 },
-            shift: Shift::SH_LSL,
-            rmif: Rmif { mask: 0, ror: 0 },
-            extend: Extend { typ: 0, lsl: 0 },
-            ldst_order: LdstOrder {
-                load: 0,
-                store: 0,
-                rs: Reg::ZERO_REG,
-            },
-            simd_ldst: SimdLdst {
-                nreg: 0,
-                index: 0,
-                offset: 0,
-            },
-            fcvt: Fcvt {
-                mode: 0,
-                fbits: 0,
-                sgn: 0,
-            },
-            frint: Frint { mode: 0, bits: 0 },
-            ins_elem: InsElem { dst: 0, src: 0 },
-            fcmla_elem: FcmlaElem { idx: 0, rot: 0 },
-        }
-    }
 }
